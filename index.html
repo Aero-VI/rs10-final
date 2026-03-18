@@ -38,107 +38,61 @@
         dirLight.castShadow = true;
         scene.add(dirLight);
 
-        function createGrassTexture() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 512; canvas.height = 512;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#4B5320';
-            ctx.fillRect(0, 0, 512, 512);
-            for (let i = 0; i < 20000; i++) {
-                const x = Math.random() * 512;
-                const y = Math.random() * 512;
-                const shade = 40 + Math.random() * 40;
-                ctx.fillStyle = "rgba(" + (shade - 20) + ", " + (shade + 20) + ", " + (shade - 20) + ", 0.2)";
-                ctx.fillRect(x, y, 2, 2);
-            }
-            return new THREE.CanvasTexture(canvas);
-        }
+        // --- Textures (same as before) ---
+        function createGrassTexture(){const c=document.createElement('canvas');c.width=512;c.height=512;const x=c.getContext('2d');x.fillStyle='#4B5320';x.fillRect(0,0,512,512);for(let i=0;i<20000;i++){const a=Math.random()*512,b=Math.random()*512,s=40+Math.random()*40;x.fillStyle="rgba("+(s-20)+","+(s+20)+","+(s-20)+",0.2)";x.fillRect(a,b,2,2)}return new THREE.CanvasTexture(c)}
+        function createCobblestoneTexture(){const c=document.createElement('canvas');c.width=512;c.height=512;const x=c.getContext('2d');x.fillStyle='#555';x.fillRect(0,0,512,512);for(let i=0;i<150;i++){const a=Math.random()*512,b=Math.random()*512,sX=40+Math.random()*50,sY=30+Math.random()*40,ang=Math.random()*Math.PI,g=100+Math.random()*30;x.fillStyle="rgb("+g+","+g+","+g+")";x.save();x.translate(a,b);x.rotate(ang);x.fillRect(-sX/2,-sY/2,sX,sY);x.restore()}return new THREE.CanvasTexture(c)}
+        function createStoneWallTexture(){const c=document.createElement('canvas');c.width=512;c.height=512;const x=c.getContext('2d');x.fillStyle='#606060';x.fillRect(0,0,512,512);for(let y=0;y<512;y+=32){for(let a=0;a<512;a+=64){const o=(y/32)%2===0?0:32,g=120+Math.random()*20;x.fillStyle="rgb("+g+","+g+","+g+")";x.fillRect(a+o,y,64,32);x.strokeStyle='#444';x.strokeRect(a+o,y,64,32)}}return new THREE.CanvasTexture(c)}
+        const grassTexture=createGrassTexture(),cobblestoneTexture=createCobblestoneTexture(),stoneWallTexture=createStoneWallTexture();
+        grassTexture.wrapS=cobblestoneTexture.wrapS=stoneWallTexture.wrapS=THREE.RepeatWrapping;
+        grassTexture.wrapT=cobblestoneTexture.wrapT=stoneWallTexture.wrapT=THREE.RepeatWrapping;
+        grassTexture.repeat.set(4,4);cobblestoneTexture.repeat.set(2,2);stoneWallTexture.repeat.set(2,2);
+
+        // --- World ---
+        const ground=new THREE.Mesh(new THREE.PlaneGeometry(50,50),new THREE.MeshLambertMaterial({map:grassTexture}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+        const path=new THREE.Mesh(new THREE.PlaneGeometry(8,50),new THREE.MeshLambertMaterial({map:cobblestoneTexture}));path.rotation.x=-Math.PI/2;path.position.y=0.01;path.receiveShadow=true;scene.add(path);
+        function createBuilding(x,z,w,d,h){const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({map:stoneWallTexture}));b.position.set(x,h/2,z);b.castShadow=true;b.receiveShadow=true;scene.add(b);return b}
+        const bank=createBuilding(-10,0,8,12,10),shop=createBuilding(10,10,10,8,8),weaponsmith=createBuilding(10,-10,6,6,7);
+
+        // --- Player ---
+        const playerGeo = new THREE.CylinderGeometry(0.5, 0.5, 2, 8);
+        const playerMat = new THREE.MeshStandardMaterial({color: 0x00aaff});
+        const player = new THREE.Mesh(playerGeo, playerMat);
+        player.position.set(0, 1, 10);
+        player.castShadow = true;
+        scene.add(player);
         
-        function createCobblestoneTexture() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 512; canvas.height = 512;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#555';
-            ctx.fillRect(0, 0, 512, 512);
-            for (let i = 0; i < 150; i++) {
-                const x = Math.random() * 512;
-                const y = Math.random() * 512;
-                const sizeX = 40 + Math.random() * 50;
-                const sizeY = 30 + Math.random() * 40;
-                const angle = Math.random() * Math.PI;
-                const gray = 100 + Math.random() * 30;
-                ctx.fillStyle = "rgb(" + gray + "," + gray + "," + gray + ")";
-                
-                ctx.save();
-                ctx.translate(x, y);
-                ctx.rotate(angle);
-                ctx.fillRect(-sizeX / 2, -sizeY / 2, sizeX, sizeY);
-                ctx.restore();
-            }
-            return new THREE.CanvasTexture(canvas);
-        }
-
-        function createStoneWallTexture() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 512; canvas.height = 512;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#606060';
-            ctx.fillRect(0, 0, 512, 512);
-            for (let y = 0; y < 512; y += 32) {
-                for (let x = 0; x < 512; x += 64) {
-                    const offsetX = (y / 32) % 2 === 0 ? 0 : 32;
-                    const gray = 120 + Math.random() * 20;
-                    ctx.fillStyle = "rgb(" + gray + "," + gray + "," + gray + ")";
-                    ctx.fillRect(x + offsetX, y, 64, 32);
-                    ctx.strokeStyle = '#444';
-                    ctx.strokeRect(x + offsetX, y, 64, 32);
-                }
-            }
-            return new THREE.CanvasTexture(canvas);
-        }
-
-        const grassTexture = createGrassTexture();
-        const cobblestoneTexture = createCobblestoneTexture();
-        const stoneWallTexture = createStoneWallTexture();
+        let targetPosition = new THREE.Vector3();
+        const raycaster = new THREE.Raycaster();
         
-        grassTexture.wrapS = cobblestoneTexture.wrapS = stoneWallTexture.wrapS = THREE.RepeatWrapping;
-        grassTexture.wrapT = cobblestoneTexture.wrapT = stoneWallTexture.wrapT = THREE.RepeatWrapping;
-        grassTexture.repeat.set(4, 4);
-        cobblestoneTexture.repeat.set(2, 2);
-        stoneWallTexture.repeat.set(2, 2);
+        renderer.domElement.addEventListener('click', (event) => {
+            const mouse = new THREE.Vector2();
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(ground);
+            
+            if (intersects.length > 0) {
+                targetPosition.copy(intersects[0].point);
+            }
+        });
 
-        const groundGeo = new THREE.PlaneGeometry(50, 50);
-        const groundMat = new THREE.MeshLambertMaterial({ map: grassTexture });
-        const ground = new THREE.Mesh(groundGeo, groundMat);
-        ground.rotation.x = -Math.PI / 2;
-        ground.receiveShadow = true;
-        scene.add(ground);
-        
-        const pathGeo = new THREE.PlaneGeometry(8, 50);
-        const pathMat = new THREE.MeshLambertMaterial({ map: cobblestoneTexture });
-        const path = new THREE.Mesh(pathGeo, pathMat);
-        path.rotation.x = -Math.PI / 2;
-        path.position.y = 0.01;
-        path.receiveShadow = true;
-        scene.add(path);
-
-        function createBuilding(x, z, width, depth, height) {
-            const buildingGeo = new THREE.BoxGeometry(width, height, depth);
-            const buildingMat = new THREE.MeshStandardMaterial({ map: stoneWallTexture });
-            const building = new THREE.Mesh(buildingGeo, buildingMat);
-            building.position.set(x, height / 2, z);
-            building.castShadow = true;
-            building.receiveShadow = true;
-            scene.add(building);
-            return building;
-        }
-
-        const bank = createBuilding(-10, 0, 8, 12, 10);
-        const shop = createBuilding(10, 10, 10, 8, 8);
-        const weaponsmith = createBuilding(10, -10, 6, 6, 7);
-
+        // --- Game Loop ---
         function animate() {
             requestAnimationFrame(animate);
+            
+            // Player movement
+            const distance = player.position.distanceTo(targetPosition);
+            if (distance > 0.1) {
+                const direction = targetPosition.clone().sub(player.position).normalize();
+                player.position.add(direction.multiplyScalar(0.1));
+            }
+            
+            // Camera follow
+            camera.position.x = player.position.x + 20;
+            camera.position.z = player.position.z + 20;
+            camera.lookAt(player.position);
+
             renderer.render(scene, camera);
         }
         animate();
