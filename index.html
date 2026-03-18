@@ -11,7 +11,52 @@
     </style>
 </head>
 <body>
-    <div id="ui-container"></div>
+    <div id="ui-container">
+        <!-- Top left: Stats/HP -->
+        <div id="top-bar">
+            <div class="orb hp-orb">❤ 10</div>
+            <div class="orb prayer-orb">✨ 1</div>
+            <div class="orb run-orb">🏃 100</div>
+        </div>
+
+        <!-- Bottom left: Chat -->
+        <div id="chat-box">
+            <div class="chat-messages">
+                <p><span class="sys">Welcome to RuneScape 10.</span></p>
+                <p><span class="sys">The graphics are finally good.</span></p>
+            </div>
+            <div class="chat-input">Press Enter to chat...</div>
+        </div>
+
+        <!-- Right side: Minimap and Panels -->
+        <div id="right-panel-container">
+            <div id="minimap-border">
+                <div id="minimap-inner">
+                    <!-- Minimap canvas would go here -->
+                </div>
+            </div>
+            <div id="side-panel">
+                <div class="panel-tabs">
+                    <button class="tab active">🎒</button>
+                    <button class="tab">⚔️</button>
+                    <button class="tab">📊</button>
+                    <button class="tab">⚙️</button>
+                </div>
+                <div class="panel-content">
+                    <div class="inventory-grid">
+                        <!-- 28 slots -->
+                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
+                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
+                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
+                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
+                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
+                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
+                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <canvas id="game-canvas"></canvas>
     <script type="importmap">
     {
