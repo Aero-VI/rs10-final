@@ -58,19 +58,11 @@
         </div>
     </div>
     <canvas id="game-canvas"></canvas>
-    <script type="importmap">
-    {
-        "imports": {
-            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-        }
-    }
-    </script>
     <script type="module">
-        import * as THREE from 'three';
-        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        import * as THREE from 'https://esm.sh/three@0.128.0';
+        import { EffectComposer } from 'https://esm.sh/three@0.128.0/examples/jsm/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'https://esm.sh/three@0.128.0/examples/jsm/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'https://esm.sh/three@0.128.0/examples/jsm/postprocessing/UnrealBloomPass.js';
 
         // Scene setup
         const scene = new THREE.Scene();
@@ -153,7 +145,7 @@
             ctx.fillStyle = '#222'; ctx.fillRect(0, 0, 512, 512);
             for(let i=0; i<800; i++) {
                 const gray = 60 + Math.random()*50;
-                ctx.fillStyle = \`rgb(\${gray},\${gray},\${gray})\`;
+                ctx.fillStyle = `rgb(${gray},${gray},${gray})`;
                 ctx.beginPath();
                 ctx.ellipse(Math.random()*512, Math.random()*512, 8+Math.random()*12, 6+Math.random()*8, Math.random()*Math.PI, 0, Math.PI*2);
                 ctx.fill();
@@ -173,9 +165,23 @@
                 for(let x=0; x<512; x+=64) {
                     const offset = (y/32)%2===0 ? 0 : 32;
                     const gray = 80 + Math.random()*40;
-                    ctx.fillStyle = \`rgb(\${gray},\${gray},\${gray})\`;
+                    ctx.fillStyle = `rgb(${gray},${gray},${gray})`;
                     ctx.fillRect(x + offset + 2, y + 2, 60, 28);
                 }
+            }
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+            return tex;
+        }
+        
+        function createWoodTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#4a2f1d'; ctx.fillRect(0, 0, 256, 256);
+            for(let i=0; i<200; i++) {
+                ctx.fillStyle = '#3a2010';
+                ctx.fillRect(0, Math.random()*256, 256, 1 + Math.random()*3);
             }
             const tex = new THREE.CanvasTexture(canvas);
             tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
@@ -185,18 +191,19 @@
         const grassTex = createGrassTexture();
         const cobbleTex = createCobbleTexture();
         const stoneWallTex = createStoneWallTexture();
+        const woodTex = createWoodTexture();
 
         // World Generation
-        const groundGeo = new THREE.PlaneGeometry(120, 120);
-        const groundMat = new THREE.MeshStandardMaterial({ map: grassTex, roughness: 0.9, metalness: 0.1 });
+        const groundGeo = new THREE.PlaneGeometry(160, 160);
+        const groundMat = new THREE.MeshStandardMaterial({ map: grassTex, roughness: 0.95, metalness: 0.05 });
         const ground = new THREE.Mesh(groundGeo, groundMat);
         ground.rotation.x = -Math.PI / 2;
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // Town Square (Cobblestone)
+        // Town Square
         const squareGeo = new THREE.PlaneGeometry(40, 40);
-        const squareMat = new THREE.MeshStandardMaterial({ map: cobbleTex, roughness: 0.7, metalness: 0.2 });
+        const squareMat = new THREE.MeshStandardMaterial({ map: cobbleTex, roughness: 0.8, metalness: 0.1 });
         const square = new THREE.Mesh(squareGeo, squareMat);
         square.rotation.x = -Math.PI / 2;
         square.position.y = 0.05;
@@ -223,18 +230,17 @@
             const group = new THREE.Group();
             
             const geo = new THREE.BoxGeometry(w, h, d);
-            const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.8 });
+            const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 });
             const mesh = new THREE.Mesh(geo, mat);
             mesh.position.set(0, h/2, 0);
             mesh.castShadow = true;
             mesh.receiveShadow = true;
             group.add(mesh);
             
-            // Roof
-            const roofGeo = new THREE.ConeGeometry(w*0.8, h*0.5, 4);
-            const roofMat = new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.9 });
+            const roofGeo = new THREE.ConeGeometry(w*0.8, h*0.6, 4);
+            const roofMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.9 });
             const roof = new THREE.Mesh(roofGeo, roofMat);
-            roof.position.set(0, h + h*0.25, 0);
+            roof.position.set(0, h + h*0.3, 0);
             roof.rotation.y = Math.PI/4;
             roof.castShadow = true;
             group.add(roof);
@@ -244,12 +250,63 @@
             return group;
         }
 
-        // Bank
-        createBuilding(12, 10, 12, -15, -15, stoneWallTex);
-        // Shop
-        createBuilding(10, 8, 10, 15, -15, stoneWallTex);
-        // Cook's House
-        createBuilding(8, 7, 8, -15, 15, stoneWallTex);
+        createBuilding(12, 10, 12, -15, -15, stoneWallTex); // Bank
+        createBuilding(10, 8, 10, 15, -15, stoneWallTex); // Shop
+        createBuilding(8, 7, 8, -15, 15, stoneWallTex); // Cook
+
+        // Environment Props
+        function createTree(x, z) {
+            const tree = new THREE.Group();
+            const trunkGeo = new THREE.CylinderGeometry(0.4, 0.6, 3, 8);
+            const trunkMat = new THREE.MeshStandardMaterial({ map: woodTex });
+            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+            trunk.position.y = 1.5;
+            trunk.castShadow = true;
+            tree.add(trunk);
+            
+            const leavesGeo = new THREE.DodecahedronGeometry(2.5);
+            const leavesMat = new THREE.MeshStandardMaterial({ color: 0x2d4c1e, roughness: 0.9 });
+            const leaves = new THREE.Mesh(leavesGeo, leavesMat);
+            leaves.position.y = 4;
+            leaves.castShadow = true;
+            tree.add(leaves);
+            
+            tree.position.set(x, 0, z);
+            scene.add(tree);
+        }
+        createTree(-25, -5); createTree(-20, 10); createTree(25, -10); createTree(20, 20); createTree(-10, 25);
+
+        function createBarrels(x, z) {
+            const barrelGeo = new THREE.CylinderGeometry(0.5, 0.5, 1.2, 12);
+            const barrelMat = new THREE.MeshStandardMaterial({ map: woodTex });
+            const barrel1 = new THREE.Mesh(barrelGeo, barrelMat);
+            barrel1.position.set(x, 0.6, z);
+            barrel1.castShadow = true;
+            scene.add(barrel1);
+            
+            const barrel2 = new THREE.Mesh(barrelGeo, barrelMat);
+            barrel2.position.set(x+1.1, 0.6, z+0.2);
+            barrel2.castShadow = true;
+            scene.add(barrel2);
+        }
+        createBarrels(12, -10);
+        createBarrels(-11, 14);
+
+        // Glowing Forge
+        const forgeGeo = new THREE.BoxGeometry(3, 2, 3);
+        const forgeMat = new THREE.MeshStandardMaterial({ map: stoneWallTex });
+        const forge = new THREE.Mesh(forgeGeo, forgeMat);
+        forge.position.set(15, 1, 10);
+        forge.castShadow = true;
+        scene.add(forge);
+        
+        const lavaGeo = new THREE.PlaneGeometry(2, 2);
+        const lavaMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
+        const lava = new THREE.Mesh(lavaGeo, lavaMat);
+        lava.rotation.x = -Math.PI / 2;
+        lava.position.set(15, 2.05, 10);
+        scene.add(lava);
+        createTorch(15, 10); // Forge light
 
         // Characters
         function createCharacter(color, x, z) {
@@ -276,7 +333,7 @@
             return group;
         }
 
-        const player = createCharacter(0x336699, 0, 0); // Blue shirt
+        const player = createCharacter(0x336699, 0, 5); // Blue shirt
         const cook = createCharacter(0xffffff, -5, 5); // White chef
         const banker = createCharacter(0x222222, -10, -5); // Black robes
         const shopkeeper = createCharacter(0x55aa55, 10, -5); // Green shirt
@@ -285,9 +342,9 @@
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         let targetPosition = null;
-        const playerSpeed = 0.15;
 
         window.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'CANVAS') return; // Ignore clicks on UI
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
             
@@ -295,36 +352,38 @@
             const intersects = raycaster.intersectObjects([ground, square]);
             
             if (intersects.length > 0) {
-                targetPosition = intersects[0].point;
-                targetPosition.y = 0; // Keep on ground
+                targetPosition = intersects[0].point.clone();
+                targetPosition.y = 0; // Keep on ground plane
             }
         });
+        
+        const clock = new THREE.Clock();
 
         // Game Loop
         function animate() {
             requestAnimationFrame(animate);
+            const delta = clock.getDelta();
 
             // Move player
             if (targetPosition) {
-                const dx = targetPosition.x - player.position.x;
-                const dz = targetPosition.z - player.position.z;
-                const dist = Math.sqrt(dx*dx + dz*dz);
+                const speed = 15; // units per second
+                const distanceToTarget = player.position.distanceTo(targetPosition);
                 
-                if (dist > 0.2) {
-                    const speed = 0.15;
-                    player.position.x += (dx/dist) * speed;
-                    player.position.z += (dz/dist) * speed;
+                if (distanceToTarget > 0.1) {
+                    const direction = targetPosition.clone().sub(player.position).normalize();
+                    player.position.add(direction.multiplyScalar(speed * delta));
                 } else {
                     targetPosition = null;
                 }
             }
             
             // Smooth camera follow
-            const cameraTarget = new THREE.Vector3(player.position.x, 0, player.position.z);
-            camera.position.lerp(cameraTarget.clone().add(new THREE.Vector3(30, 30, 30)), 0.05);
-            camera.lookAt(cameraTarget);
+            const cameraOffset = new THREE.Vector3(30, 30, 30);
+            const targetCameraPosition = player.position.clone().add(cameraOffset);
+            camera.position.lerp(targetCameraPosition, 0.05);
+            camera.lookAt(player.position);
 
-            composer.render();
+            composer.render(delta);
         }
         animate();
 
@@ -336,6 +395,7 @@
             camera.bottom = -d;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
         });
     </script>
 </body>
