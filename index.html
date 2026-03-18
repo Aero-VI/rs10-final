@@ -61,44 +61,76 @@
     <script type="importmap">
     {
         "imports": {
-            "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
+            "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+            "EffectComposer": "https://unpkg.com/three@0.128.0/examples/jsm/postprocessing/EffectComposer.js",
+            "RenderPass": "https://unpkg.com/three@0.128.0/examples/jsm/postprocessing/RenderPass.js",
+            "UnrealBloomPass": "https://unpkg.com/three@0.128.0/examples/jsm/postprocessing/UnrealBloomPass.js"
         }
     }
     </script>
     <script type="module">
         import * as THREE from 'three';
+        import { EffectComposer } from 'EffectComposer';
+        import { RenderPass } from 'RenderPass';
+        import { UnrealBloomPass } from 'UnrealBloomPass';
 
         // Scene setup
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB); // Sky blue
-        scene.fog = new THREE.FogExp2(0x87CEEB, 0.02);
+        scene.background = new THREE.Color(0x1a0f0a); // Dark, moody evening
+        scene.fog = new THREE.FogExp2(0x1a0f0a, 0.015);
 
-        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('game-canvas'), antialias: true });
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('game-canvas'), antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
 
         // Camera setup (isometric)
         const aspect = window.innerWidth / window.innerHeight;
-        const d = 25;
+        const d = 20;
         const camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 1000);
         camera.position.set(30, 30, 30);
         camera.lookAt(0, 0, 0);
 
         // Lighting
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+        const hemiLight = new THREE.HemisphereLight(0x2a2a3a, 0x0f0a05, 0.4);
         scene.add(hemiLight);
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight.position.set(20, 40, -20);
+        // Sun / God ray source
+        const dirLight = new THREE.DirectionalLight(0xffaa55, 1.5);
+        dirLight.position.set(40, 30, -40);
         dirLight.castShadow = true;
-        dirLight.shadow.mapSize.width = 2048;
-        dirLight.shadow.mapSize.height = 2048;
-        dirLight.shadow.camera.left = -30;
-        dirLight.shadow.camera.right = 30;
-        dirLight.shadow.camera.top = 30;
-        dirLight.shadow.camera.bottom = -30;
+        dirLight.shadow.mapSize.width = 4096;
+        dirLight.shadow.mapSize.height = 4096;
+        dirLight.shadow.camera.left = -40;
+        dirLight.shadow.camera.right = 40;
+        dirLight.shadow.camera.top = 40;
+        dirLight.shadow.camera.bottom = -40;
+        dirLight.shadow.bias = -0.0005;
         scene.add(dirLight);
+
+        // Local Point Lights (Torches)
+        function createTorch(x, z) {
+            const light = new THREE.PointLight(0xff6600, 2, 15);
+            light.position.set(x, 2, z);
+            light.castShadow = true;
+            scene.add(light);
+            return light;
+        }
+        createTorch(-8, -8);
+        createTorch(8, -8);
+
+        // Post-Processing (Bloom for glowing effects)
+        const renderScene = new RenderPass(scene, camera);
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 0.5;
+        bloomPass.strength = 1.2; // Intense bloom like the screenshot
+        bloomPass.radius = 0.5;
+
+        const composer = new EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
 
         // Procedural Textures
         function createGrassTexture() {
@@ -241,7 +273,7 @@
                 }
             }
 
-            renderer.render(scene, camera);
+            composer.render();
         }
         animate();
 
