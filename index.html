@@ -41,13 +41,69 @@
         dirLight.castShadow = true;
         scene.add(dirLight);
 
+        // --- Procedural Textures ---
+        function createGrassTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#4B5320'; // Army green base
+            ctx.fillRect(0, 0, 512, 512);
+            for (let i = 0; i < 20000; i++) {
+                const x = Math.random() * 512;
+                const y = Math.random() * 512;
+                const shade = 40 + Math.random() * 40;
+                ctx.fillStyle = ;
+                ctx.fillRect(x, y, 2, 2);
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+        
+        function createCobblestoneTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#555'; // Mortar
+            ctx.fillRect(0, 0, 512, 512);
+            for (let i = 0; i < 150; i++) {
+                const x = Math.random() * 512;
+                const y = Math.random() * 512;
+                const sizeX = 40 + Math.random() * 50;
+                const sizeY = 30 + Math.random() * 40;
+                const angle = Math.random() * Math.PI;
+                const gray = 100 + Math.random() * 30;
+                ctx.fillStyle = ;
+                
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(angle);
+                ctx.fillRect(-sizeX / 2, -sizeY / 2, sizeX, sizeY);
+                ctx.restore();
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+        
+        const grassTexture = createGrassTexture();
+        const cobblestoneTexture = createCobblestoneTexture();
+        grassTexture.wrapS = cobblestoneTexture.wrapS = THREE.RepeatWrapping;
+        grassTexture.wrapT = cobblestoneTexture.wrapT = THREE.RepeatWrapping;
+        grassTexture.repeat.set(4, 4);
+        cobblestoneTexture.repeat.set(2, 2);
+
         // World Generation
         const groundGeo = new THREE.PlaneGeometry(50, 50);
-        const groundMat = new THREE.MeshLambertMaterial({ color: 0x556B2F });
+        const groundMat = new THREE.MeshLambertMaterial({ map: grassTexture });
         const ground = new THREE.Mesh(groundGeo, groundMat);
         ground.rotation.x = -Math.PI / 2;
         ground.receiveShadow = true;
         scene.add(ground);
+        
+        const pathGeo = new THREE.PlaneGeometry(8, 50);
+        const pathMat = new THREE.MeshLambertMaterial({ map: cobblestoneTexture });
+        const path = new THREE.Mesh(pathGeo, pathMat);
+        path.rotation.x = -Math.PI / 2;
+        path.position.y = 0.01;
+        path.receiveShadow = true;
+        scene.add(path);
 
         // Game Loop
         function animate() {
