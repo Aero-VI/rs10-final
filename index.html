@@ -255,81 +255,7 @@
         createBuilding(8, 7, 8, -15, 15, stoneWallTex); // Cook
 
         // Environment Props
-        function createTree(x, z) {
-            const tree = new THREE.Group();
-            const trunkGeo = new THREE.CylinderGeometry(0.4, 0.6, 3, 8);
-            const trunkMat = new THREE.MeshStandardMaterial({ map: woodTex });
-            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-            trunk.position.y = 1.5;
-            trunk.castShadow = true;
-            tree.add(trunk);
-            
-            const leavesGeo = new THREE.DodecahedronGeometry(2.5);
-            const leavesMat = new THREE.MeshStandardMaterial({ color: 0x2d4c1e, roughness: 0.9 });
-            const leaves = new THREE.Mesh(leavesGeo, leavesMat);
-            leaves.position.y = 4;
-            leaves.castShadow = true;
-            tree.add(leaves);
-            
-            tree.position.set(x, 0, z);
-            scene.add(tree);
-        }
-        createTree(-25, -5); createTree(-20, 10); createTree(25, -10); createTree(20, 20); createTree(-10, 25);
-
-        function createBarrels(x, z) {
-            const barrelGeo = new THREE.CylinderGeometry(0.5, 0.5, 1.2, 12);
-            const barrelMat = new THREE.MeshStandardMaterial({ map: woodTex });
-            const barrel1 = new THREE.Mesh(barrelGeo, barrelMat);
-            barrel1.position.set(x, 0.6, z);
-            barrel1.castShadow = true;
-            scene.add(barrel1);
-            
-            const barrel2 = new THREE.Mesh(barrelGeo, barrelMat);
-            barrel2.position.set(x+1.1, 0.6, z+0.2);
-            barrel2.castShadow = true;
-            scene.add(barrel2);
-        }
-        createBarrels(12, -10);
-        createBarrels(-11, 14);
-
-        // Glowing Forge
-        const forgeGeo = new THREE.BoxGeometry(3, 2, 3);
-        const forgeMat = new THREE.MeshStandardMaterial({ map: stoneWallTex });
-        const forge = new THREE.Mesh(forgeGeo, forgeMat);
-        forge.position.set(15, 1, 10);
-        forge.castShadow = true;
-        scene.add(forge);
         
-        const lavaGeo = new THREE.PlaneGeometry(2, 2);
-        const lavaMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
-        const lava = new THREE.Mesh(lavaGeo, lavaMat);
-        lava.rotation.x = -Math.PI / 2;
-        lava.position.set(15, 2.05, 10);
-        scene.add(lava);
-        createTorch(15, 10); // Forge light
-
-        
-        // Environment Props
-        function createTree(x, z) {
-            const tree = new THREE.Group();
-            const trunkGeo = new THREE.CylinderGeometry(0.4, 0.6, 3, 8);
-            const trunkMat = new THREE.MeshStandardMaterial({ map: woodTex });
-            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-            trunk.position.y = 1.5;
-            trunk.castShadow = true;
-            tree.add(trunk);
-            
-            const leavesGeo = new THREE.DodecahedronGeometry(2.5);
-            const leavesMat = new THREE.MeshStandardMaterial({ color: 0x2d4c1e, roughness: 0.9 });
-            const leaves = new THREE.Mesh(leavesGeo, leavesMat);
-            leaves.position.y = 4;
-            leaves.castShadow = true;
-            tree.add(leaves);
-            
-            tree.position.set(x, 0, z);
-            scene.add(tree);
-        }
-        createTree(-25, -5); createTree(-20, 10); createTree(25, -10); createTree(20, 20); createTree(-10, 25);
 
         function createBarrels(x, z) {
             const barrelGeo = new THREE.CylinderGeometry(0.5, 0.5, 1.2, 12);
@@ -365,7 +291,6 @@
 
         // Characters
         const npcs = [];
-        
         function createCharacter(name, color, x, z, isPlayer = false) {
             const group = new THREE.Group();
             
