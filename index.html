@@ -125,9 +125,77 @@
         // Shop
         createBuilding(8, 7, 8, 10, -10, 0xA0522D);
 
+        // Characters
+        function createCharacter(color, x, z) {
+            const group = new THREE.Group();
+            
+            // Body
+            const bodyGeo = new THREE.CylinderGeometry(0.6, 0.6, 1.5, 8);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: color });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 1.5/2 + 0.5;
+            body.castShadow = true;
+            group.add(body);
+            
+            // Head
+            const headGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = 1.5 + 0.5 + 0.4;
+            head.castShadow = true;
+            group.add(head);
+
+            group.position.set(x, 0, z);
+            scene.add(group);
+            return group;
+        }
+
+        const player = createCharacter(0x336699, 0, 0); // Blue shirt
+        const cook = createCharacter(0xffffff, -5, 5); // White chef
+        const banker = createCharacter(0x222222, -10, -5); // Black robes
+        const shopkeeper = createCharacter(0x55aa55, 10, -5); // Green shirt
+
+        // Movement Logic
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let targetPosition = null;
+        const playerSpeed = 0.15;
+
+        window.addEventListener('click', (e) => {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects([ground, square]);
+            
+            if (intersects.length > 0) {
+                targetPosition = intersects[0].point;
+                targetPosition.y = 0; // Keep on ground
+            }
+        });
+
         // Game Loop
         function animate() {
             requestAnimationFrame(animate);
+
+            // Move player
+            if (targetPosition) {
+                const dx = targetPosition.x - player.position.x;
+                const dz = targetPosition.z - player.position.z;
+                const dist = Math.sqrt(dx*dx + dz*dz);
+                
+                if (dist > 0.1) {
+                    player.position.x += (dx/dist) * playerSpeed;
+                    player.position.z += (dz/dist) * playerSpeed;
+                    // Camera follow
+                    camera.position.x = player.position.x + 30;
+                    camera.position.z = player.position.z + 30;
+                    camera.lookAt(player.position);
+                } else {
+                    targetPosition = null;
+                }
+            }
+
             renderer.render(scene, camera);
         }
         animate();
