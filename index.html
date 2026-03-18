@@ -61,18 +61,16 @@
     <script type="importmap">
     {
         "imports": {
-            "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
-            "EffectComposer": "https://unpkg.com/three@0.128.0/examples/jsm/postprocessing/EffectComposer.js",
-            "RenderPass": "https://unpkg.com/three@0.128.0/examples/jsm/postprocessing/RenderPass.js",
-            "UnrealBloomPass": "https://unpkg.com/three@0.128.0/examples/jsm/postprocessing/UnrealBloomPass.js"
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
         }
     }
     </script>
     <script type="module">
         import * as THREE from 'three';
-        import { EffectComposer } from 'EffectComposer';
-        import { RenderPass } from 'RenderPass';
-        import { UnrealBloomPass } from 'UnrealBloomPass';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
         // Scene setup
         const scene = new THREE.Scene();
@@ -312,17 +310,19 @@
                 const dz = targetPosition.z - player.position.z;
                 const dist = Math.sqrt(dx*dx + dz*dz);
                 
-                if (dist > 0.1) {
-                    player.position.x += (dx/dist) * playerSpeed;
-                    player.position.z += (dz/dist) * playerSpeed;
-                    // Camera follow
-                    camera.position.x = player.position.x + 30;
-                    camera.position.z = player.position.z + 30;
-                    camera.lookAt(player.position);
+                if (dist > 0.2) {
+                    const speed = 0.15;
+                    player.position.x += (dx/dist) * speed;
+                    player.position.z += (dz/dist) * speed;
                 } else {
                     targetPosition = null;
                 }
             }
+            
+            // Smooth camera follow
+            const cameraTarget = new THREE.Vector3(player.position.x, 0, player.position.z);
+            camera.position.lerp(cameraTarget.clone().add(new THREE.Vector3(30, 30, 30)), 0.05);
+            camera.lookAt(cameraTarget);
 
             composer.render();
         }
