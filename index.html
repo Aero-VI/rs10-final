@@ -58,21 +58,11 @@
         </div>
     </div>
     <canvas id="game-canvas"></canvas>
-    <script type="importmap">
-    {
-        "imports": {
-            "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
-            "EffectComposer": "https://unpkg.com/three@0.128.0/examples/jsm/postprocessing/EffectComposer.js",
-            "RenderPass": "https://unpkg.com/three@0.128.0/examples/jsm/postprocessing/RenderPass.js",
-            "UnrealBloomPass": "https://unpkg.com/three@0.128.0/examples/jsm/postprocessing/UnrealBloomPass.js"
-        }
-    }
-    </script>
     <script type="module">
-        import * as THREE from 'three';
-        import { EffectComposer } from 'EffectComposer';
-        import { RenderPass } from 'RenderPass';
-        import { UnrealBloomPass } from 'UnrealBloomPass';
+        import * as THREE from 'https://esm.sh/three@0.128.0';
+        import { EffectComposer } from 'https://esm.sh/three@0.128.0/examples/jsm/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'https://esm.sh/three@0.128.0/examples/jsm/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'https://esm.sh/three@0.128.0/examples/jsm/postprocessing/UnrealBloomPass.js';
 
         // Scene setup
         const scene = new THREE.Scene();
