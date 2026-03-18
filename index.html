@@ -308,40 +308,178 @@
         scene.add(lava);
         createTorch(15, 10); // Forge light
 
+        
+        // Environment Props
+        function createTree(x, z) {
+            const tree = new THREE.Group();
+            const trunkGeo = new THREE.CylinderGeometry(0.4, 0.6, 3, 8);
+            const trunkMat = new THREE.MeshStandardMaterial({ map: woodTex });
+            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+            trunk.position.y = 1.5;
+            trunk.castShadow = true;
+            tree.add(trunk);
+            
+            const leavesGeo = new THREE.DodecahedronGeometry(2.5);
+            const leavesMat = new THREE.MeshStandardMaterial({ color: 0x2d4c1e, roughness: 0.9 });
+            const leaves = new THREE.Mesh(leavesGeo, leavesMat);
+            leaves.position.y = 4;
+            leaves.castShadow = true;
+            tree.add(leaves);
+            
+            tree.position.set(x, 0, z);
+            scene.add(tree);
+        }
+        createTree(-25, -5); createTree(-20, 10); createTree(25, -10); createTree(20, 20); createTree(-10, 25);
+
+        function createBarrels(x, z) {
+            const barrelGeo = new THREE.CylinderGeometry(0.5, 0.5, 1.2, 12);
+            const barrelMat = new THREE.MeshStandardMaterial({ map: woodTex });
+            const barrel1 = new THREE.Mesh(barrelGeo, barrelMat);
+            barrel1.position.set(x, 0.6, z);
+            barrel1.castShadow = true;
+            scene.add(barrel1);
+            
+            const barrel2 = new THREE.Mesh(barrelGeo, barrelMat);
+            barrel2.position.set(x+1.1, 0.6, z+0.2);
+            barrel2.castShadow = true;
+            scene.add(barrel2);
+        }
+        createBarrels(12, -10);
+        createBarrels(-11, 14);
+
+        // Glowing Forge
+        const forgeGeo = new THREE.BoxGeometry(3, 2, 3);
+        const forgeMat = new THREE.MeshStandardMaterial({ map: stoneWallTex });
+        const forge = new THREE.Mesh(forgeGeo, forgeMat);
+        forge.position.set(15, 1, 10);
+        forge.castShadow = true;
+        scene.add(forge);
+        
+        const lavaGeo = new THREE.PlaneGeometry(2, 2);
+        const lavaMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
+        const lava = new THREE.Mesh(lavaGeo, lavaMat);
+        lava.rotation.x = -Math.PI / 2;
+        lava.position.set(15, 2.05, 10);
+        scene.add(lava);
+        createTorch(15, 10, 0xff4400, 3, 20); // Forge light
+
         // Characters
-        function createCharacter(color, x, z) {
+        const npcs = [];
+        
+        function createCharacter(name, color, x, z, isPlayer = false) {
             const group = new THREE.Group();
             
-            // Body
-            const bodyGeo = new THREE.CylinderGeometry(0.6, 0.6, 1.5, 8);
+            const bodyGeo = new THREE.CylinderGeometry(0.4, 0.5, 1.5, 8);
             const bodyMat = new THREE.MeshStandardMaterial({ color: color });
             const body = new THREE.Mesh(bodyGeo, bodyMat);
             body.position.y = 1.5/2 + 0.5;
             body.castShadow = true;
             group.add(body);
             
-            // Head
-            const headGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+            const headGeo = new THREE.BoxGeometry(0.7, 0.7, 0.7);
             const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
             const head = new THREE.Mesh(headGeo, headMat);
-            head.position.y = 1.5 + 0.5 + 0.4;
+            head.position.y = 1.5 + 0.5 + 0.35;
             head.castShadow = true;
             group.add(head);
 
-            group.position.set(x, 0, z);
+            group.position.set(x, 0.5, z); // Start slightly above ground
             scene.add(group);
-            return group;
+
+            const label = document.createElement('div');
+            label.className = 'npc-label';
+            label.textContent = name;
+            label.style.color = isPlayer ? '#00ff00' : '#ffff00';
+            labelsContainer.appendChild(label);
+
+            const charData = {
+                name: name,
+                group: group,
+                label: label,
+                isPlayer: isPlayer,
+                message: `Hello, I am ${name}.`
+            };
+            
+            const hitGeo = new THREE.CylinderGeometry(0.8, 0.8, 2.5, 8);
+            const hitMat = new THREE.MeshBasicMaterial({ visible: false });
+            const hitMesh = new THREE.Mesh(hitGeo, hitMat);
+            hitMesh.position.y = 1.25;
+            hitMesh.userData = charData;
+            charData.hitMesh = hitMesh;
+            group.add(hitMesh);
+
+            if (!isPlayer) npcs.push(charData);
+
+            return charData;
         }
 
-        const player = createCharacter(0x336699, 0, 5); // Blue shirt
-        const cook = createCharacter(0xffffff, -5, 5); // White chef
-        const banker = createCharacter(0x222222, -10, -5); // Black robes
-        const shopkeeper = createCharacter(0x55aa55, 10, -5); // Green shirt
+
+        const player = createCharacter('Player', 0x336699, 0, 5, true); // Blue shirt
+        const cook = createCharacter('Cook', 0xdddddd, -5, 5); cook.message = "Best pies in Varrock, right here!"; // White chef
+        const banker = createCharacter('Banker', 0x222222, -10, -5); banker.message = "Welcome to the Bank of Gielinor."; // Black robes
+        const shopkeeper = createCharacter('Shopkeeper', 0x55aa55, 10, -5); shopkeeper.message = "Fancy a look at my wares?"; // Green shirt
 
         // Movement Logic
+        
+        // Interaction Logic
+        const labelsContainer = document.getElementById('labels-container');
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         let targetPosition = null;
+
+        // Label update function
+        function updateLabels() {
+            const allChars = [player, ...npcs];
+            allChars.forEach(char => {
+                const pos = char.group.position.clone();
+                pos.y += (char.isPlayer ? 4.0 : 3.2); // Player label higher
+                pos.project(camera);
+                
+                const x = (pos.x * .5 + .5) * window.innerWidth;
+                const y = (pos.y * -.5 + .5) * window.innerHeight;
+                
+                char.label.style.left = `${x}px`;
+                char.label.style.top = `${y}px`;
+                char.label.style.display = pos.z > 1 ? 'none' : 'block';
+            });
+        }
+
+        window.addEventListener('click', (e) => {
+            if (e.target.closest('#ui-container')) return;
+
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+
+            // Check for NPC clicks first
+            const npcHitboxes = npcs.map(n => n.hitMesh);
+            const npcIntersects = raycaster.intersectObjects(npcHitboxes);
+            if (npcIntersects.length > 0) {
+                const npcData = npcIntersects[0].object.userData;
+                addChatMessage(`[${npcData.name}]: ${npcData.message}`, '#ffff00');
+                player.group.lookAt(npcData.group.position.x, player.group.position.y, npcData.group.position.z);
+                targetPosition = null; // Stop moving
+                return;
+            }
+
+            // If no NPC, check ground
+            const intersects = raycaster.intersectObjects([ground, square]);
+            if (intersects.length > 0) {
+                targetPosition = intersects[0].point.clone();
+                targetPosition.y = player.group.position.y; // Keep player on their current Y plane
+
+                // Add yellow click marker
+                const clickGeo = new THREE.RingGeometry(0.2, 0.4, 16);
+                const clickMat = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide });
+                const clickMesh = new THREE.Mesh(clickGeo, clickMat);
+                clickMesh.rotation.x = -Math.PI / 2;
+                clickMesh.position.copy(targetPosition);
+                clickMesh.position.y += 0.1;
+                scene.add(clickMesh);
+                setTimeout(() => scene.remove(clickMesh), 300);
+            }
+        });
+
 
         window.addEventListener('click', (e) => {
             if (e.target.tagName !== 'CANVAS') return; // Ignore clicks on UI
@@ -383,6 +521,7 @@
             camera.position.lerp(targetCameraPosition, 0.05);
             camera.lookAt(player.position);
 
+            updateLabels();
             composer.render(delta);
         }
         animate();
