@@ -64,6 +64,8 @@
         import { RenderPass } from 'https://esm.sh/three@0.128.0/examples/jsm/postprocessing/RenderPass.js';
         import { UnrealBloomPass } from 'https://esm.sh/three@0.128.0/examples/jsm/postprocessing/UnrealBloomPass.js';
 
+        const labelsContainer = document.getElementById('labels-container');
+
         // Scene setup
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a0f0a); // Dark, moody evening
@@ -347,7 +349,7 @@
         // Movement Logic
         
         // Interaction Logic
-        const labelsContainer = document.getElementById('labels-container');
+        
         function addChatMessage(msg, color) {
             const chatBox = document.querySelector('.chat-messages');
             if (chatBox) {
