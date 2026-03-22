@@ -5,314 +5,854 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RuneScape 10</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        body, html { margin: 0; overflow: hidden; background-color: #000; }
-        #game-canvas { display: block; width: 100vw; height: 100vh; }
-    </style>
 </head>
 <body>
+    <!-- Loading Screen -->
+    <div id="loading-overlay">
+        <h1>RuneScape 10</h1>
+        <div class="subtitle">Loading — please wait...</div>
+        <div class="loading-bar-outer"><div class="loading-bar-inner" id="loading-bar"></div></div>
+    </div>
+
+    <!-- NPC/Player labels rendered here -->
+    <div id="labels-container"></div>
+
+    <!-- Right-Click Context Menu -->
+    <div id="context-menu">
+        <div class="menu-title">Choose Option</div>
+        <div id="context-menu-items"></div>
+    </div>
+
     <div id="ui-container">
-        <!-- Top left: Stats/HP -->
+        <!-- Top left: Orbs -->
         <div id="top-bar">
-            <div class="orb hp-orb">❤ 10</div>
-            <div class="orb prayer-orb">✨ 1</div>
-            <div class="orb run-orb">🏃 100</div>
+            <div class="orb-wrapper">
+                <div class="orb hp-orb"><div class="orb-fill"></div><span class="orb-icon">❤</span></div>
+                <span class="orb-text">10/10</span>
+            </div>
+            <div class="orb-wrapper">
+                <div class="orb prayer-orb"><div class="orb-fill"></div><span class="orb-icon">✦</span></div>
+                <span class="orb-text">1/1</span>
+            </div>
+            <div class="orb-wrapper">
+                <div class="orb run-orb"><div class="orb-fill"></div><span class="orb-icon">🏃</span></div>
+                <span class="orb-text">100%</span>
+            </div>
         </div>
 
-        <!-- Bottom left: Chat -->
+        <!-- Chat Box -->
         <div id="chat-box">
-            <div class="chat-messages">
+            <div class="chat-tabs">
+                <button class="chat-tab active">All</button>
+                <button class="chat-tab">Game</button>
+                <button class="chat-tab">Public</button>
+                <button class="chat-tab">Private</button>
+                <button class="chat-tab">Clan</button>
+                <button class="chat-tab">Trade</button>
+            </div>
+            <div class="chat-messages" id="chat-messages">
                 <p><span class="sys">Welcome to RuneScape 10.</span></p>
                 <p><span class="sys">The graphics are finally good.</span></p>
             </div>
-            <div class="chat-input">Press Enter to chat...</div>
+            <div class="chat-input" id="chat-input">Press Enter to chat...</div>
         </div>
 
-        <!-- Right side: Minimap and Panels -->
+        <!-- Right Panel -->
         <div id="right-panel-container">
-            <div id="minimap-border">
-                <div id="minimap-inner">
-                    <!-- Minimap canvas would go here -->
+            <div id="minimap-wrapper">
+                <div id="compass">N</div>
+                <div id="minimap-border">
+                    <div id="minimap-inner">
+                        <canvas id="minimap-canvas" width="192" height="192"></canvas>
+                    </div>
                 </div>
+                <div id="world-map-btn">🗺</div>
             </div>
             <div id="side-panel">
                 <div class="panel-tabs">
-                    <button class="tab active">🎒</button>
-                    <button class="tab">⚔️</button>
-                    <button class="tab">📊</button>
-                    <button class="tab">⚙️</button>
+                    <button class="tab active" data-panel="inv">🎒</button>
+                    <button class="tab" data-panel="combat">⚔️</button>
+                    <button class="tab" data-panel="stats">📊</button>
+                    <button class="tab" data-panel="quest">📜</button>
+                    <button class="tab" data-panel="prayer">✦</button>
+                    <button class="tab" data-panel="magic">✨</button>
+                    <button class="tab" data-panel="settings">⚙️</button>
                 </div>
-                <div class="panel-content">
-                    <div class="inventory-grid">
-                        <!-- 28 slots -->
-                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
-                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
-                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
-                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
-                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
-                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
-                        <div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div><div class="inv-slot"></div>
-                    </div>
+                <div class="panel-content" id="panel-content">
+                    <div class="inventory-grid" id="inventory-grid"></div>
                 </div>
             </div>
         </div>
     </div>
+
     <canvas id="game-canvas"></canvas>
+
     <script type="module">
-        import * as THREE from 'https://esm.sh/three@0.128.0';
-        import { EffectComposer } from 'https://esm.sh/three@0.128.0/examples/jsm/postprocessing/EffectComposer.js';
-        import { RenderPass } from 'https://esm.sh/three@0.128.0/examples/jsm/postprocessing/RenderPass.js';
-        import { UnrealBloomPass } from 'https://esm.sh/three@0.128.0/examples/jsm/postprocessing/UnrealBloomPass.js';
+        import * as THREE from 'https://esm.sh/three@0.160.0';
+        import { EffectComposer } from 'https://esm.sh/three@0.160.0/examples/jsm/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'https://esm.sh/three@0.160.0/examples/jsm/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'https://esm.sh/three@0.160.0/examples/jsm/postprocessing/UnrealBloomPass.js';
 
-        const labelsContainer = document.getElementById('labels-container');
+        // ═══════ LOADING ═══════
+        const loadBar = document.getElementById('loading-bar');
+        const loadOverlay = document.getElementById('loading-overlay');
+        let loadProgress = 0;
+        function setLoad(pct) { loadProgress = pct; loadBar.style.width = pct + '%'; }
 
-        // Scene setup
+        // ═══════ INVENTORY SETUP ═══════
+        const invGrid = document.getElementById('inventory-grid');
+        for (let i = 0; i < 28; i++) {
+            const slot = document.createElement('div');
+            slot.className = 'inv-slot';
+            invGrid.appendChild(slot);
+        }
+
+        // ═══════ SCENE ═══════
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1a0f0a); // Dark, moody evening
-        scene.fog = new THREE.FogExp2(0x1a0f0a, 0.015);
+        // RS-style bright blue sky
+        scene.background = new THREE.Color(0x87CEEB);
+        scene.fog = new THREE.Fog(0x87CEEB, 80, 160);
+        setLoad(10);
 
-        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('game-canvas'), antialias: true, powerPreference: "high-performance" });
+        const canvas = document.getElementById('game-canvas');
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.2;
+        renderer.toneMappingExposure = 1.4;
+        setLoad(20);
 
-        // Camera setup (isometric)
+        // ═══════ CAMERA (isometric like RS) ═══════
         const aspect = window.innerWidth / window.innerHeight;
-        const d = 20;
-        const camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 1000);
+        const d = 18;
+        const camera = new THREE.OrthographicCamera(-d * aspect, d * aspect, d, -d, 1, 500);
         camera.position.set(30, 30, 30);
         camera.lookAt(0, 0, 0);
 
-        // Lighting
-        const hemiLight = new THREE.HemisphereLight(0x2a2a3a, 0x0f0a05, 0.4);
+        // ═══════ LIGHTING (bright, warm RS daytime) ═══════
+        const ambLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambLight);
+
+        const hemiLight = new THREE.HemisphereLight(0x87CEEB, 0x556B2F, 0.6);
         scene.add(hemiLight);
 
-        // Sun / God ray source
-        const dirLight = new THREE.DirectionalLight(0xffaa55, 1.5);
-        dirLight.position.set(40, 30, -40);
-        dirLight.castShadow = true;
-        dirLight.shadow.mapSize.width = 4096;
-        dirLight.shadow.mapSize.height = 4096;
-        dirLight.shadow.camera.left = -40;
-        dirLight.shadow.camera.right = 40;
-        dirLight.shadow.camera.top = 40;
-        dirLight.shadow.camera.bottom = -40;
-        dirLight.shadow.bias = -0.0005;
-        scene.add(dirLight);
+        // Main sun
+        const sunLight = new THREE.DirectionalLight(0xfff5e0, 1.8);
+        sunLight.position.set(50, 60, 30);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 4096;
+        sunLight.shadow.mapSize.height = 4096;
+        sunLight.shadow.camera.left = -60;
+        sunLight.shadow.camera.right = 60;
+        sunLight.shadow.camera.top = 60;
+        sunLight.shadow.camera.bottom = -60;
+        sunLight.shadow.camera.near = 1;
+        sunLight.shadow.camera.far = 200;
+        sunLight.shadow.bias = -0.0003;
+        scene.add(sunLight);
 
-        // Local Point Lights (Torches)
-        function createTorch(x, z) {
-            const light = new THREE.PointLight(0xff6600, 2, 15);
-            light.position.set(x, 2, z);
-            light.castShadow = true;
-            scene.add(light);
-            return light;
-        }
-        createTorch(-8, -8);
-        createTorch(8, -8);
+        // Fill light
+        const fillLight = new THREE.DirectionalLight(0xaaccff, 0.4);
+        fillLight.position.set(-30, 20, -30);
+        scene.add(fillLight);
+        setLoad(30);
 
-        // Post-Processing (Bloom for glowing effects)
-        const renderScene = new RenderPass(scene, camera);
-        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-        bloomPass.threshold = 0.5;
-        bloomPass.strength = 1.2; // Intense bloom like the screenshot
-        bloomPass.radius = 0.5;
+        // ═══════ POST-PROCESSING ═══════
+        const renderPass = new RenderPass(scene, camera);
+        const bloomPass = new UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth, window.innerHeight),
+            0.3, 0.4, 0.9
+        );
+        bloomPass.threshold = 0.85;
+        bloomPass.strength = 0.3;
+        bloomPass.radius = 0.4;
 
         const composer = new EffectComposer(renderer);
-        composer.addPass(renderScene);
+        composer.addPass(renderPass);
         composer.addPass(bloomPass);
 
-        // Procedural Textures
+        // ═══════ TEXTURE GENERATORS ═══════
         function createGrassTexture() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 512; canvas.height = 512;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#2b3b14'; ctx.fillRect(0, 0, 512, 512); // Darker base grass
-            for(let i=0; i<30000; i++) {
-                ctx.fillStyle = Math.random() > 0.5 ? '#1a2a0a' : '#3a4d13';
-                ctx.fillRect(Math.random()*512, Math.random()*512, 2, 6);
+            const c = document.createElement('canvas');
+            c.width = 512; c.height = 512;
+            const ctx = c.getContext('2d');
+            // Base green — RS-style bright grass
+            ctx.fillStyle = '#4a8c28';
+            ctx.fillRect(0, 0, 512, 512);
+            // Variation
+            for (let i = 0; i < 40000; i++) {
+                const shade = Math.random();
+                if (shade < 0.3) ctx.fillStyle = '#3d7a1f';
+                else if (shade < 0.6) ctx.fillStyle = '#5a9e32';
+                else if (shade < 0.85) ctx.fillStyle = '#4a8c28';
+                else ctx.fillStyle = '#68af40';
+                ctx.fillRect(Math.random() * 512, Math.random() * 512, 1 + Math.random() * 2, 3 + Math.random() * 5);
             }
-            const tex = new THREE.CanvasTexture(canvas);
+            // Small dirt patches
+            for (let i = 0; i < 50; i++) {
+                ctx.fillStyle = `rgba(100,80,50,${0.15 + Math.random() * 0.1})`;
+                ctx.beginPath();
+                ctx.arc(Math.random() * 512, Math.random() * 512, 3 + Math.random() * 8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            const tex = new THREE.CanvasTexture(c);
             tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
-            tex.repeat.set(20, 20);
+            tex.repeat.set(16, 16);
+            tex.colorSpace = THREE.SRGBColorSpace;
+            return tex;
+        }
+
+        function createDirtPathTexture() {
+            const c = document.createElement('canvas');
+            c.width = 256; c.height = 256;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#8B7355';
+            ctx.fillRect(0, 0, 256, 256);
+            for (let i = 0; i < 5000; i++) {
+                const v = Math.random();
+                ctx.fillStyle = v < 0.5 ? '#7a6347' : '#9c8463';
+                ctx.fillRect(Math.random() * 256, Math.random() * 256, 2 + Math.random() * 3, 1 + Math.random() * 2);
+            }
+            // Pebbles
+            for (let i = 0; i < 30; i++) {
+                const g = 120 + Math.random() * 60;
+                ctx.fillStyle = `rgb(${g},${g-10},${g-20})`;
+                ctx.beginPath();
+                ctx.arc(Math.random() * 256, Math.random() * 256, 2 + Math.random() * 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            const tex = new THREE.CanvasTexture(c);
+            tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(4, 4);
+            tex.colorSpace = THREE.SRGBColorSpace;
             return tex;
         }
 
         function createCobbleTexture() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 512; canvas.height = 512;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#222'; ctx.fillRect(0, 0, 512, 512);
-            for(let i=0; i<800; i++) {
-                const gray = 60 + Math.random()*50;
-                ctx.fillStyle = `rgb(${gray},${gray},${gray})`;
+            const c = document.createElement('canvas');
+            c.width = 512; c.height = 512;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#888078';
+            ctx.fillRect(0, 0, 512, 512);
+            for (let i = 0; i < 600; i++) {
+                const gray = 100 + Math.random() * 80;
+                const warm = Math.random() * 15;
+                ctx.fillStyle = `rgb(${gray + warm},${gray},${gray - warm})`;
                 ctx.beginPath();
-                ctx.ellipse(Math.random()*512, Math.random()*512, 8+Math.random()*12, 6+Math.random()*8, Math.random()*Math.PI, 0, Math.PI*2);
+                ctx.ellipse(
+                    Math.random() * 512, Math.random() * 512,
+                    10 + Math.random() * 14, 8 + Math.random() * 10,
+                    Math.random() * Math.PI, 0, Math.PI * 2
+                );
                 ctx.fill();
+                ctx.strokeStyle = `rgba(0,0,0,0.3)`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
             }
-            const tex = new THREE.CanvasTexture(canvas);
+            const tex = new THREE.CanvasTexture(c);
             tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
-            tex.repeat.set(6, 6);
+            tex.repeat.set(4, 4);
+            tex.colorSpace = THREE.SRGBColorSpace;
             return tex;
         }
-        
-        function createStoneWallTexture() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 512; canvas.height = 512;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#555'; ctx.fillRect(0, 0, 512, 512);
-            for(let y=0; y<512; y+=32) {
-                for(let x=0; x<512; x+=64) {
-                    const offset = (y/32)%2===0 ? 0 : 32;
-                    const gray = 80 + Math.random()*40;
-                    ctx.fillStyle = `rgb(${gray},${gray},${gray})`;
-                    ctx.fillRect(x + offset + 2, y + 2, 60, 28);
+
+        function createStoneTexture() {
+            const c = document.createElement('canvas');
+            c.width = 512; c.height = 512;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#9e9585';
+            ctx.fillRect(0, 0, 512, 512);
+            // Stone brick pattern
+            for (let y = 0; y < 512; y += 40) {
+                for (let x = 0; x < 512; x += 80) {
+                    const off = ((y / 40) % 2) * 40;
+                    const gray = 130 + Math.random() * 50;
+                    const warm = Math.random() * 20;
+                    ctx.fillStyle = `rgb(${gray + warm}, ${gray + warm * 0.5}, ${gray - warm * 0.3})`;
+                    ctx.fillRect(x + off + 2, y + 2, 76, 36);
+                    // Mortar lines
+                    ctx.strokeStyle = '#706858';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(x + off + 1, y + 1, 78, 38);
                 }
             }
-            const tex = new THREE.CanvasTexture(canvas);
+            // Weathering
+            for (let i = 0; i < 2000; i++) {
+                ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.05})`;
+                ctx.fillRect(Math.random() * 512, Math.random() * 512, 1, 1);
+            }
+            const tex = new THREE.CanvasTexture(c);
             tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+            tex.colorSpace = THREE.SRGBColorSpace;
             return tex;
         }
-        
+
         function createWoodTexture() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 256; canvas.height = 256;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#4a2f1d'; ctx.fillRect(0, 0, 256, 256);
-            for(let i=0; i<200; i++) {
-                ctx.fillStyle = '#3a2010';
-                ctx.fillRect(0, Math.random()*256, 256, 1 + Math.random()*3);
+            const c = document.createElement('canvas');
+            c.width = 256; c.height = 256;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#6b4226';
+            ctx.fillRect(0, 0, 256, 256);
+            for (let i = 0; i < 300; i++) {
+                const v = Math.random();
+                ctx.fillStyle = v < 0.5 ? '#5a3518' : '#7a5232';
+                ctx.fillRect(0, Math.random() * 256, 256, 1 + Math.random() * 2);
             }
-            const tex = new THREE.CanvasTexture(canvas);
+            // Knots
+            for (let i = 0; i < 4; i++) {
+                ctx.fillStyle = '#4a2a12';
+                ctx.beginPath();
+                ctx.ellipse(Math.random() * 256, Math.random() * 256, 4, 6, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            const tex = new THREE.CanvasTexture(c);
             tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+            tex.colorSpace = THREE.SRGBColorSpace;
+            return tex;
+        }
+
+        function createRoofTexture() {
+            const c = document.createElement('canvas');
+            c.width = 256; c.height = 256;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(0, 0, 256, 256);
+            // Shingle rows
+            for (let y = 0; y < 256; y += 16) {
+                for (let x = 0; x < 256; x += 32) {
+                    const off = ((y / 16) % 2) * 16;
+                    const r = 100 + Math.random() * 40;
+                    ctx.fillStyle = `rgb(${r + 20},${r * 0.5},${r * 0.2})`;
+                    ctx.fillRect(x + off, y, 30, 14);
+                    ctx.strokeStyle = '#5a2a08';
+                    ctx.strokeRect(x + off, y, 30, 14);
+                }
+            }
+            const tex = new THREE.CanvasTexture(c);
+            tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(2, 2);
+            tex.colorSpace = THREE.SRGBColorSpace;
+            return tex;
+        }
+
+        function createWaterTexture() {
+            const c = document.createElement('canvas');
+            c.width = 256; c.height = 256;
+            const ctx = c.getContext('2d');
+            const grd = ctx.createRadialGradient(128, 128, 20, 128, 128, 128);
+            grd.addColorStop(0, '#5599dd');
+            grd.addColorStop(1, '#3377bb');
+            ctx.fillStyle = grd;
+            ctx.fillRect(0, 0, 256, 256);
+            // Ripples
+            for (let i = 0; i < 20; i++) {
+                ctx.strokeStyle = `rgba(180,220,255,${0.1 + Math.random() * 0.15})`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(128, 128, 20 + i * 5, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            const tex = new THREE.CanvasTexture(c);
+            tex.colorSpace = THREE.SRGBColorSpace;
             return tex;
         }
 
         const grassTex = createGrassTexture();
+        const dirtTex = createDirtPathTexture();
         const cobbleTex = createCobbleTexture();
-        const stoneWallTex = createStoneWallTexture();
+        const stoneTex = createStoneTexture();
         const woodTex = createWoodTexture();
+        const roofTex = createRoofTexture();
+        const waterTex = createWaterTexture();
+        setLoad(50);
 
-        // World Generation
-        const groundGeo = new THREE.PlaneGeometry(160, 160);
-        const groundMat = new THREE.MeshStandardMaterial({ map: grassTex, roughness: 0.95, metalness: 0.05 });
+        // ═══════ WORLD GEOMETRY ═══════
+
+        // Ground
+        const groundGeo = new THREE.PlaneGeometry(200, 200);
+        const groundMat = new THREE.MeshStandardMaterial({ map: grassTex, roughness: 0.9, metalness: 0.0 });
         const ground = new THREE.Mesh(groundGeo, groundMat);
         ground.rotation.x = -Math.PI / 2;
         ground.receiveShadow = true;
         scene.add(ground);
 
-        // Town Square
-        const squareGeo = new THREE.PlaneGeometry(40, 40);
-        const squareMat = new THREE.MeshStandardMaterial({ map: cobbleTex, roughness: 0.8, metalness: 0.1 });
+        // Lumbridge-style town square
+        const squareGeo = new THREE.PlaneGeometry(32, 32);
+        const squareMat = new THREE.MeshStandardMaterial({ map: cobbleTex, roughness: 0.75 });
         const square = new THREE.Mesh(squareGeo, squareMat);
         square.rotation.x = -Math.PI / 2;
-        square.position.y = 0.05;
+        square.position.y = 0.06;
         square.receiveShadow = true;
         scene.add(square);
-        
-        // Central Fountain
-        const fountainGeo = new THREE.CylinderGeometry(3, 4, 1.5, 16);
-        const fountainMat = new THREE.MeshStandardMaterial({ map: stoneWallTex });
-        const fountain = new THREE.Mesh(fountainGeo, fountainMat);
-        fountain.position.set(0, 0.75, 0);
-        fountain.castShadow = true;
-        fountain.receiveShadow = true;
-        scene.add(fountain);
-        
-        const waterGeo = new THREE.CylinderGeometry(2.8, 2.8, 1.6, 16);
-        const waterMat = new THREE.MeshStandardMaterial({ color: 0x4488ff, transparent: true, opacity: 0.8, roughness: 0.1, metalness: 0.8 });
-        const water = new THREE.Mesh(waterGeo, waterMat);
-        water.position.set(0, 0.8, 0);
-        scene.add(water);
 
-        // Buildings
-        function createBuilding(w, h, d, x, z, tex) {
-            const group = new THREE.Group();
-            
-            const geo = new THREE.BoxGeometry(w, h, d);
-            const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 });
-            const mesh = new THREE.Mesh(geo, mat);
-            mesh.position.set(0, h/2, 0);
-            mesh.castShadow = true;
+        // Dirt paths extending from square
+        function createPath(x, z, w, h, rot) {
+            const g = new THREE.PlaneGeometry(w, h);
+            const m = new THREE.MeshStandardMaterial({ map: dirtTex, roughness: 0.85 });
+            const mesh = new THREE.Mesh(g, m);
+            mesh.rotation.x = -Math.PI / 2;
+            if (rot) mesh.rotation.z = rot;
+            mesh.position.set(x, 0.04, z);
             mesh.receiveShadow = true;
-            group.add(mesh);
-            
-            const roofGeo = new THREE.ConeGeometry(w*0.8, h*0.6, 4);
-            const roofMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.9 });
+            scene.add(mesh);
+        }
+        createPath(0, -24, 6, 16);   // South
+        createPath(0, 24, 6, 16);    // North
+        createPath(-24, 0, 16, 6, 0); // West (already correct since geometry is 16 wide)
+        createPath(24, 0, 16, 6);     // East
+
+        // ═══════ FOUNTAIN (centre of town) ═══════
+        const fountainBase = new THREE.Mesh(
+            new THREE.CylinderGeometry(4, 4.5, 1.2, 24),
+            new THREE.MeshStandardMaterial({ map: stoneTex, roughness: 0.8 })
+        );
+        fountainBase.position.set(0, 0.6, 0);
+        fountainBase.castShadow = true; fountainBase.receiveShadow = true;
+        scene.add(fountainBase);
+
+        const fountainRim = new THREE.Mesh(
+            new THREE.TorusGeometry(3.8, 0.3, 8, 24),
+            new THREE.MeshStandardMaterial({ map: stoneTex, roughness: 0.8 })
+        );
+        fountainRim.rotation.x = -Math.PI / 2;
+        fountainRim.position.set(0, 1.25, 0);
+        fountainRim.castShadow = true;
+        scene.add(fountainRim);
+
+        const waterSurface = new THREE.Mesh(
+            new THREE.CircleGeometry(3.5, 24),
+            new THREE.MeshStandardMaterial({
+                map: waterTex, transparent: true, opacity: 0.85,
+                roughness: 0.1, metalness: 0.3, color: 0x6699cc
+            })
+        );
+        waterSurface.rotation.x = -Math.PI / 2;
+        waterSurface.position.set(0, 1.15, 0);
+        scene.add(waterSurface);
+
+        // Fountain pillar
+        const pillar = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.3, 0.4, 3, 12),
+            new THREE.MeshStandardMaterial({ map: stoneTex })
+        );
+        pillar.position.set(0, 2.7, 0);
+        pillar.castShadow = true;
+        scene.add(pillar);
+
+        // ═══════ BUILDINGS ═══════
+        function createBuilding(config) {
+            const { w, h, depth, x, z, roofColor, wallTex: wTex, name, doorSide } = config;
+            const group = new THREE.Group();
+
+            // Walls
+            const wallGeo = new THREE.BoxGeometry(w, h, depth);
+            const wallMat = new THREE.MeshStandardMaterial({ map: wTex || stoneTex, roughness: 0.85 });
+            const walls = new THREE.Mesh(wallGeo, wallMat);
+            walls.position.y = h / 2;
+            walls.castShadow = true; walls.receiveShadow = true;
+            group.add(walls);
+
+            // Roof (pyramid)
+            const roofGeo = new THREE.ConeGeometry(Math.max(w, depth) * 0.75, h * 0.5, 4);
+            const roofMat = new THREE.MeshStandardMaterial({ map: roofTex, color: roofColor || 0x8B4513, roughness: 0.9 });
             const roof = new THREE.Mesh(roofGeo, roofMat);
-            roof.position.set(0, h + h*0.3, 0);
-            roof.rotation.y = Math.PI/4;
+            roof.position.y = h + h * 0.25;
+            roof.rotation.y = Math.PI / 4;
             roof.castShadow = true;
             group.add(roof);
-            
+
+            // Door (dark opening)
+            const doorGeo = new THREE.PlaneGeometry(1.5, 2.5);
+            const doorMat = new THREE.MeshStandardMaterial({ color: 0x2a1a0a, roughness: 1 });
+            const door = new THREE.Mesh(doorGeo, doorMat);
+            if (doorSide === 'south') { door.position.set(0, 1.25, depth / 2 + 0.05); }
+            else if (doorSide === 'north') { door.position.set(0, 1.25, -depth / 2 - 0.05); door.rotation.y = Math.PI; }
+            else if (doorSide === 'east') { door.position.set(w / 2 + 0.05, 1.25, 0); door.rotation.y = -Math.PI / 2; }
+            else { door.position.set(-w / 2 - 0.05, 1.25, 0); door.rotation.y = Math.PI / 2; }
+            group.add(door);
+
+            // Windows (small yellow squares on each side)
+            const winGeo = new THREE.PlaneGeometry(1, 1);
+            const winMat = new THREE.MeshStandardMaterial({ color: 0xffdd88, emissive: 0x443300, emissiveIntensity: 0.3, roughness: 0.5 });
+            [[-1, depth / 2 + 0.05, 0], [1, depth / 2 + 0.05, 0],
+             [-1, -depth / 2 - 0.05, Math.PI], [1, -depth / 2 - 0.05, Math.PI]].forEach(([ox, oz, ry]) => {
+                const win = new THREE.Mesh(winGeo, winMat);
+                win.position.set(ox * (w * 0.3), h * 0.6, oz);
+                win.rotation.y = ry || 0;
+                group.add(win);
+            });
+
+            // Sign
+            if (name) {
+                const signPost = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.08, 0.08, 2.5, 6),
+                    new THREE.MeshStandardMaterial({ map: woodTex })
+                );
+                signPost.position.set(doorSide === 'east' ? w / 2 + 1.5 : doorSide === 'west' ? -w / 2 - 1.5 : 2, 1.25, doorSide === 'south' ? depth / 2 + 1.5 : doorSide === 'north' ? -depth / 2 - 1.5 : 0);
+                signPost.castShadow = true;
+                group.add(signPost);
+
+                const signBoard = new THREE.Mesh(
+                    new THREE.BoxGeometry(2, 1, 0.1),
+                    new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.9 })
+                );
+                signBoard.position.copy(signPost.position);
+                signBoard.position.y = 2.5;
+                signBoard.castShadow = true;
+                group.add(signBoard);
+            }
+
             group.position.set(x, 0, z);
             scene.add(group);
             return group;
         }
 
-        createBuilding(12, 10, 12, -15, -15, stoneWallTex); // Bank
-        createBuilding(10, 8, 10, 15, -15, stoneWallTex); // Shop
-        createBuilding(8, 7, 8, -15, 15, stoneWallTex); // Cook
+        // Bank of Gielinor
+        createBuilding({ w: 14, h: 10, depth: 12, x: -18, z: -16, roofColor: 0x666666, name: 'Bank', doorSide: 'east' });
+        // General Store
+        createBuilding({ w: 10, h: 8, depth: 10, x: 18, z: -16, roofColor: 0x8B4513, name: 'Shop', doorSide: 'west' });
+        // Cook's House
+        createBuilding({ w: 9, h: 7, depth: 9, x: -18, z: 16, roofColor: 0xAA5522, name: 'Kitchen', doorSide: 'east' });
+        // Smithy
+        createBuilding({ w: 10, h: 7, depth: 8, x: 18, z: 16, roofColor: 0x555555, name: 'Smithy', doorSide: 'west' });
+        setLoad(60);
 
-        // Environment Props
-        
+        // ═══════ TREES (Low-poly RS style) ═══════
+        function createTree(x, z, size) {
+            const s = size || 1;
+            const group = new THREE.Group();
 
-        function createBarrels(x, z) {
-            const barrelGeo = new THREE.CylinderGeometry(0.5, 0.5, 1.2, 12);
-            const barrelMat = new THREE.MeshStandardMaterial({ map: woodTex });
-            const barrel1 = new THREE.Mesh(barrelGeo, barrelMat);
-            barrel1.position.set(x, 0.6, z);
-            barrel1.castShadow = true;
-            scene.add(barrel1);
-            
-            const barrel2 = new THREE.Mesh(barrelGeo, barrelMat);
-            barrel2.position.set(x+1.1, 0.6, z+0.2);
-            barrel2.castShadow = true;
-            scene.add(barrel2);
+            // Trunk
+            const trunk = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.3 * s, 0.5 * s, 3 * s, 6),
+                new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.95 })
+            );
+            trunk.position.y = 1.5 * s;
+            trunk.castShadow = true;
+            group.add(trunk);
+
+            // Canopy layers (stacked cones — RS style)
+            const leafColors = [0x2d6b1a, 0x3a8525, 0x2a5f15];
+            for (let i = 0; i < 3; i++) {
+                const canopy = new THREE.Mesh(
+                    new THREE.ConeGeometry((2.5 - i * 0.4) * s, (2 - i * 0.3) * s, 7 + i),
+                    new THREE.MeshStandardMaterial({ color: leafColors[i], roughness: 0.9 })
+                );
+                canopy.position.y = (3 + i * 1.2) * s;
+                canopy.castShadow = true;
+                group.add(canopy);
+            }
+
+            group.position.set(x, 0, z);
+            scene.add(group);
+            return group;
         }
-        createBarrels(12, -10);
-        createBarrels(-11, 14);
 
-        // Glowing Forge
-        const forgeGeo = new THREE.BoxGeometry(3, 2, 3);
-        const forgeMat = new THREE.MeshStandardMaterial({ map: stoneWallTex });
-        const forge = new THREE.Mesh(forgeGeo, forgeMat);
-        forge.position.set(15, 1, 10);
-        forge.castShadow = true;
-        scene.add(forge);
-        
+        // Forest trees around the town
+        const treePositions = [
+            [-35, -25, 1.2], [-40, -10, 1], [-38, 5, 1.3], [-42, 20, 1.1], [-35, 30, 1],
+            [35, -25, 1.1], [40, -12, 1.2], [38, 8, 1], [42, 22, 1.3], [35, 32, 1.1],
+            [-30, -35, 1], [-20, -38, 1.2], [0, -38, 1.1], [20, -38, 1], [30, -35, 1.2],
+            [-28, 35, 1.1], [-15, 38, 1], [5, 38, 1.2], [22, 38, 1.1], [32, 35, 1],
+            // More distant trees
+            [-50, -40, 1.3], [-55, 0, 1.1], [-48, 35, 1.2], [50, -38, 1.1], [55, 5, 1.3],
+            [48, 40, 1], [-45, -50, 1], [45, -50, 1.2], [-50, 50, 1.1], [50, 50, 1.3],
+            [-60, -20, 1], [60, 20, 1.2], [-58, 25, 1.1], [58, -25, 1],
+        ];
+        treePositions.forEach(([x, z, s]) => createTree(x, z, s));
+
+        // ═══════ DEAD TREES (RS-style) ═══════
+        function createDeadTree(x, z) {
+            const group = new THREE.Group();
+            const trunk = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.2, 0.45, 4, 5),
+                new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.95 })
+            );
+            trunk.position.y = 2;
+            trunk.castShadow = true;
+            group.add(trunk);
+            // Bare branches
+            for (let i = 0; i < 4; i++) {
+                const branch = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.05, 0.1, 1.5 + Math.random(), 4),
+                    new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.95 })
+                );
+                const angle = (i / 4) * Math.PI * 2;
+                branch.position.set(Math.cos(angle) * 0.5, 3 + Math.random(), Math.sin(angle) * 0.5);
+                branch.rotation.z = Math.cos(angle) * 0.6;
+                branch.rotation.x = Math.sin(angle) * 0.6;
+                branch.castShadow = true;
+                group.add(branch);
+            }
+            group.position.set(x, 0, z);
+            scene.add(group);
+        }
+        createDeadTree(-32, 0);
+        createDeadTree(32, -5);
+
+        // ═══════ ROCKS ═══════
+        function createRock(x, z, scale) {
+            const s = scale || 1;
+            const geo = new THREE.DodecahedronGeometry(1.2 * s, 0);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x808080, roughness: 0.9, metalness: 0.05 });
+            const rock = new THREE.Mesh(geo, mat);
+            rock.position.set(x, 0.6 * s, z);
+            rock.rotation.set(Math.random(), Math.random(), 0);
+            rock.scale.y = 0.6;
+            rock.castShadow = true; rock.receiveShadow = true;
+            scene.add(rock);
+        }
+        createRock(28, 8, 1.2);
+        createRock(30, 10, 0.8);
+        createRock(26, 9.5, 0.6);
+        createRock(-28, -30, 1);
+        createRock(-25, -32, 0.7);
+
+        // ═══════ BARRELS & CRATES ═══════
+        function createBarrel(x, z) {
+            const barrel = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.5, 0.5, 1.2, 12),
+                new THREE.MeshStandardMaterial({ map: woodTex, color: 0x8B6914, roughness: 0.9 })
+            );
+            barrel.position.set(x, 0.6, z);
+            barrel.castShadow = true;
+            scene.add(barrel);
+            // Metal bands
+            [0.15, 0.85].forEach(y => {
+                const band = new THREE.Mesh(
+                    new THREE.TorusGeometry(0.5, 0.04, 6, 12),
+                    new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.6, roughness: 0.4 })
+                );
+                band.rotation.x = Math.PI / 2;
+                band.position.set(x, y, z);
+                scene.add(band);
+            });
+        }
+
+        function createCrate(x, z) {
+            const crate = new THREE.Mesh(
+                new THREE.BoxGeometry(1, 1, 1),
+                new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.9 })
+            );
+            crate.position.set(x, 0.5, z);
+            crate.rotation.y = Math.random() * 0.5;
+            crate.castShadow = true;
+            scene.add(crate);
+        }
+
+        createBarrel(12, -10); createBarrel(13.2, -10.3);
+        createBarrel(-12, 13); createBarrel(-13.1, 12.7);
+        createCrate(11, -11.5); createCrate(11.8, -12);
+        createCrate(-12, 14.5);
+        setLoad(70);
+
+        // ═══════ FORGE / ANVIL ═══════
+        // Forge
+        const forgeGroup = new THREE.Group();
+        const forgeBase = new THREE.Mesh(
+            new THREE.BoxGeometry(3, 2, 3),
+            new THREE.MeshStandardMaterial({ map: stoneTex, roughness: 0.9 })
+        );
+        forgeBase.position.y = 1;
+        forgeBase.castShadow = true;
+        forgeGroup.add(forgeBase);
+
+        // Lava/fire glow in forge
         const lavaGeo = new THREE.PlaneGeometry(2, 2);
         const lavaMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
         const lava = new THREE.Mesh(lavaGeo, lavaMat);
         lava.rotation.x = -Math.PI / 2;
-        lava.position.set(15, 2.05, 10);
-        scene.add(lava);
-        createTorch(15, 10, 0xff4400, 3, 20); // Forge light
+        lava.position.y = 2.05;
+        forgeGroup.add(lava);
 
-        // Characters
+        forgeGroup.position.set(22, 0, 12);
+        scene.add(forgeGroup);
+
+        // Anvil
+        const anvilGroup = new THREE.Group();
+        const anvilBase = new THREE.Mesh(
+            new THREE.BoxGeometry(0.8, 0.6, 0.5),
+            new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.7, roughness: 0.4 })
+        );
+        anvilBase.position.y = 0.3;
+        anvilGroup.add(anvilBase);
+        const anvilTop = new THREE.Mesh(
+            new THREE.BoxGeometry(1.2, 0.15, 0.7),
+            new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.8, roughness: 0.3 })
+        );
+        anvilTop.position.y = 0.68;
+        anvilGroup.add(anvilTop);
+        anvilGroup.position.set(20, 0, 14);
+        scene.add(anvilGroup);
+
+        // ═══════ TORCH LIGHTS ═══════
+        const torchLights = [];
+        function createTorchWithFlame(x, z) {
+            // Post
+            const post = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.08, 0.1, 2.5, 6),
+                new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.95 })
+            );
+            post.position.set(x, 1.25, z);
+            post.castShadow = true;
+            scene.add(post);
+
+            // Flame (emissive sphere)
+            const flame = new THREE.Mesh(
+                new THREE.SphereGeometry(0.2, 6, 6),
+                new THREE.MeshBasicMaterial({ color: 0xff6600 })
+            );
+            flame.position.set(x, 2.6, z);
+            scene.add(flame);
+
+            // Point light
+            const light = new THREE.PointLight(0xff8833, 1.5, 12);
+            light.position.set(x, 2.8, z);
+            scene.add(light);
+            torchLights.push({ light, flame, baseIntensity: 1.5 });
+        }
+
+        // Torches around town
+        createTorchWithFlame(-10, -10);
+        createTorchWithFlame(10, -10);
+        createTorchWithFlame(-10, 10);
+        createTorchWithFlame(10, 10);
+        // Near forge
+        createTorchWithFlame(20, 10);
+
+        // Forge glow
+        const forgeLight = new THREE.PointLight(0xff4400, 3, 15);
+        forgeLight.position.set(22, 3, 12);
+        scene.add(forgeLight);
+        torchLights.push({ light: forgeLight, baseIntensity: 3 });
+
+        // ═══════ FENCE ═══════
+        function createFenceSegment(x1, z1, x2, z2) {
+            const dx = x2 - x1, dz = z2 - z1;
+            const len = Math.sqrt(dx * dx + dz * dz);
+            const angle = Math.atan2(dx, dz);
+            const numPosts = Math.floor(len / 2);
+
+            for (let i = 0; i <= numPosts; i++) {
+                const t = i / numPosts;
+                const px = x1 + dx * t, pz = z1 + dz * t;
+                const post = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.06, 0.08, 1.2, 5),
+                    new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.95 })
+                );
+                post.position.set(px, 0.6, pz);
+                post.castShadow = true;
+                scene.add(post);
+            }
+            // Cross rails
+            for (let r = 0; r < 2; r++) {
+                const rail = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.06, 0.06, len),
+                    new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.95 })
+                );
+                rail.position.set((x1 + x2) / 2, 0.4 + r * 0.5, (z1 + z2) / 2);
+                rail.rotation.y = angle;
+                rail.castShadow = true;
+                scene.add(rail);
+            }
+        }
+
+        // Small fenced area near cook's
+        createFenceSegment(-24, 10, -24, 22);
+        createFenceSegment(-24, 22, -14, 22);
+
+        // ═══════ WELL ═══════
+        const wellGroup = new THREE.Group();
+        const wellBase = new THREE.Mesh(
+            new THREE.CylinderGeometry(1.2, 1.4, 1, 8),
+            new THREE.MeshStandardMaterial({ map: stoneTex, roughness: 0.9 })
+        );
+        wellBase.position.y = 0.5;
+        wellBase.castShadow = true;
+        wellGroup.add(wellBase);
+
+        const wellWater = new THREE.Mesh(
+            new THREE.CircleGeometry(1, 8),
+            new THREE.MeshStandardMaterial({ color: 0x335588, roughness: 0.1, metalness: 0.3 })
+        );
+        wellWater.rotation.x = -Math.PI / 2;
+        wellWater.position.y = 0.9;
+        wellGroup.add(wellWater);
+
+        // Roof structure
+        for (let i = 0; i < 2; i++) {
+            const pole = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.06, 0.06, 2.5, 5),
+                new THREE.MeshStandardMaterial({ map: woodTex })
+            );
+            pole.position.set(i === 0 ? -0.8 : 0.8, 2.25, 0);
+            pole.castShadow = true;
+            wellGroup.add(pole);
+        }
+        const wellRoof = new THREE.Mesh(
+            new THREE.ConeGeometry(1.5, 1, 4),
+            new THREE.MeshStandardMaterial({ map: roofTex, roughness: 0.9 })
+        );
+        wellRoof.position.y = 4;
+        wellRoof.rotation.y = Math.PI / 4;
+        wellRoof.castShadow = true;
+        wellGroup.add(wellRoof);
+
+        wellGroup.position.set(8, 0, 6);
+        scene.add(wellGroup);
+        setLoad(80);
+
+        // ═══════ CHARACTERS ═══════
+        const labelsContainer = document.getElementById('labels-container');
         const npcs = [];
-        function createCharacter(name, color, x, z, isPlayer = false) {
+        const allCharacters = [];
+
+        function createCharacter(name, config) {
+            const { bodyColor, shirtColor, x, z, isPlayer, legColor } = config;
             const group = new THREE.Group();
-            
-            const bodyGeo = new THREE.CylinderGeometry(0.4, 0.5, 1.5, 8);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: color });
-            const body = new THREE.Mesh(bodyGeo, bodyMat);
-            body.position.y = 1.5/2 + 0.5;
+
+            // Legs (two separate cylinders)
+            const legMat = new THREE.MeshStandardMaterial({ color: legColor || 0x4a3a2a, roughness: 0.9 });
+            [-0.15, 0.15].forEach(ox => {
+                const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.8, 6), legMat);
+                leg.position.set(ox, 0.4, 0);
+                leg.castShadow = true;
+                group.add(leg);
+            });
+
+            // Body/torso
+            const body = new THREE.Mesh(
+                new THREE.BoxGeometry(0.7, 0.9, 0.5),
+                new THREE.MeshStandardMaterial({ color: shirtColor || bodyColor, roughness: 0.85 })
+            );
+            body.position.y = 1.25;
             body.castShadow = true;
             group.add(body);
-            
-            const headGeo = new THREE.BoxGeometry(0.7, 0.7, 0.7);
-            const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
-            const head = new THREE.Mesh(headGeo, headMat);
-            head.position.y = 1.5 + 0.5 + 0.35;
+
+            // Arms
+            const armMat = new THREE.MeshStandardMaterial({ color: shirtColor || bodyColor, roughness: 0.85 });
+            [-0.5, 0.5].forEach(ox => {
+                const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.7, 6), armMat);
+                arm.position.set(ox, 1.1, 0);
+                arm.castShadow = true;
+                group.add(arm);
+            });
+
+            // Head (skin-colored box, RS style)
+            const head = new THREE.Mesh(
+                new THREE.BoxGeometry(0.55, 0.55, 0.55),
+                new THREE.MeshStandardMaterial({ color: bodyColor || 0xffccaa, roughness: 0.8 })
+            );
+            head.position.y = 2.0;
             head.castShadow = true;
             group.add(head);
 
-            group.position.set(x, 0.5, z); // Start slightly above ground
+            group.position.set(x, 0, z);
             scene.add(group);
 
+            // Label
             const label = document.createElement('div');
             label.className = 'npc-label';
             label.textContent = name;
@@ -320,13 +860,15 @@
             labelsContainer.appendChild(label);
 
             const charData = {
-                name: name,
-                group: group,
-                label: label,
-                isPlayer: isPlayer,
-                message: `Hello, I am ${name}.`
+                name, group, label, isPlayer,
+                message: `Hello, I am ${name}.`,
+                patrolCenter: new THREE.Vector3(x, 0, z),
+                patrolTarget: null,
+                patrolTimer: 0,
+                idleAnim: 0
             };
-            
+
+            // Invisible hitbox for click detection
             const hitGeo = new THREE.CylinderGeometry(0.8, 0.8, 2.5, 8);
             const hitMat = new THREE.MeshBasicMaterial({ visible: false });
             const hitMesh = new THREE.Mesh(hitGeo, hitMat);
@@ -335,118 +877,465 @@
             charData.hitMesh = hitMesh;
             group.add(hitMesh);
 
+            allCharacters.push(charData);
             if (!isPlayer) npcs.push(charData);
-
             return charData;
         }
 
+        // Player
+        const player = createCharacter('Player', {
+            bodyColor: 0xffccaa, shirtColor: 0x336699, legColor: 0x333366,
+            x: 0, z: 5, isPlayer: true
+        });
 
-        const player = createCharacter('Player', 0x336699, 0, 5, true); // Blue shirt
-        const cook = createCharacter('Cook', 0xdddddd, -5, 5); cook.message = "Best pies in Varrock, right here!"; // White chef
-        const banker = createCharacter('Banker', 0x222222, -10, -5); banker.message = "Welcome to the Bank of Gielinor."; // Black robes
-        const shopkeeper = createCharacter('Shopkeeper', 0x55aa55, 10, -5); shopkeeper.message = "Fancy a look at my wares?"; // Green shirt
+        // NPCs
+        const cook = createCharacter('Cook', {
+            bodyColor: 0xffccaa, shirtColor: 0xffffff, legColor: 0x444444,
+            x: -14, z: 14
+        });
+        cook.message = "What am I to do? I need someone to help me make a cake for the Duke's birthday!";
 
-        // Movement Logic
-        
-        // Interaction Logic
-        
-        function addChatMessage(msg, color) {
-            const chatBox = document.querySelector('.chat-messages');
-            if (chatBox) {
-                const p = document.createElement('p');
-                p.innerHTML = `<span style="color: ${color || '#fff'}">${msg}</span>`;
-                chatBox.appendChild(p);
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }
+        const banker = createCharacter('Banker', {
+            bodyColor: 0xeebb99, shirtColor: 0x222222, legColor: 0x111111,
+            x: -12, z: -14
+        });
+        banker.message = "Good day. How can I help you?";
+
+        const shopkeeper = createCharacter('Shopkeeper', {
+            bodyColor: 0xffccaa, shirtColor: 0x55aa55, legColor: 0x5a4a2a,
+            x: 14, z: -14
+        });
+        shopkeeper.message = "Can I help you at all?";
+
+        const guard = createCharacter('Guard', {
+            bodyColor: 0xffccaa, shirtColor: 0x888888, legColor: 0x666666,
+            x: 6, z: -6
+        });
+        guard.message = "Move along, citizen.";
+
+        const hans = createCharacter('Hans', {
+            bodyColor: 0xffccaa, shirtColor: 0x8B4513, legColor: 0x5a4a3a,
+            x: -5, z: -3
+        });
+        hans.message = "Hello. I don't think we've met before. I'm Hans, I look after the castle.";
+        setLoad(90);
+
+        // ═══════ NPC PATROLLING ═══════
+        function updateNPCs(delta) {
+            npcs.forEach(npc => {
+                npc.patrolTimer -= delta;
+                if (npc.patrolTimer <= 0) {
+                    // Pick a new patrol point near their center
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = 1 + Math.random() * 3;
+                    npc.patrolTarget = new THREE.Vector3(
+                        npc.patrolCenter.x + Math.cos(angle) * dist,
+                        0,
+                        npc.patrolCenter.z + Math.sin(angle) * dist
+                    );
+                    npc.patrolTimer = 3 + Math.random() * 5;
+                }
+
+                if (npc.patrolTarget) {
+                    const dir = npc.patrolTarget.clone().sub(npc.group.position);
+                    dir.y = 0;
+                    if (dir.length() > 0.2) {
+                        dir.normalize().multiplyScalar(1.5 * delta);
+                        npc.group.position.add(dir);
+                        // Face direction
+                        npc.group.lookAt(
+                            npc.patrolTarget.x,
+                            npc.group.position.y,
+                            npc.patrolTarget.z
+                        );
+                    }
+                }
+
+                // Idle bob
+                npc.idleAnim += delta * 2;
+                npc.group.position.y = Math.sin(npc.idleAnim) * 0.02;
+            });
         }
+
+        // ═══════ MINIMAP ═══════
+        const minimapCanvas = document.getElementById('minimap-canvas');
+        const mmCtx = minimapCanvas.getContext('2d');
+
+        function renderMinimap() {
+            const size = 192;
+            const scale = size / 120; // Map 120 world-units to full minimap
+            const cx = size / 2 - player.group.position.x * scale;
+            const cz = size / 2 - player.group.position.z * scale;
+
+            mmCtx.clearRect(0, 0, size, size);
+
+            // Background (grass)
+            mmCtx.fillStyle = '#3a7a20';
+            mmCtx.fillRect(0, 0, size, size);
+
+            // Cobble square
+            mmCtx.fillStyle = '#888078';
+            mmCtx.fillRect(cx - 16 * scale, cz - 16 * scale, 32 * scale, 32 * scale);
+
+            // Paths
+            mmCtx.fillStyle = '#8B7355';
+            mmCtx.fillRect(cx - 3 * scale, cz - 32 * scale, 6 * scale, 64 * scale);
+            mmCtx.fillRect(cx - 32 * scale, cz - 3 * scale, 64 * scale, 6 * scale);
+
+            // Buildings
+            const buildings = [
+                { x: -18, z: -16, w: 14, d: 12, c: '#aaa' },
+                { x: 18, z: -16, w: 10, d: 10, c: '#a88' },
+                { x: -18, z: 16, w: 9, d: 9, c: '#8a6' },
+                { x: 18, z: 16, w: 10, d: 8, c: '#888' },
+            ];
+            buildings.forEach(b => {
+                mmCtx.fillStyle = b.c;
+                mmCtx.fillRect(
+                    cx + (b.x - b.w / 2) * scale,
+                    cz + (b.z - b.d / 2) * scale,
+                    b.w * scale, b.d * scale
+                );
+            });
+
+            // Trees
+            mmCtx.fillStyle = '#1a5a10';
+            treePositions.forEach(([tx, tz]) => {
+                mmCtx.beginPath();
+                mmCtx.arc(cx + tx * scale, cz + tz * scale, 2, 0, Math.PI * 2);
+                mmCtx.fill();
+            });
+
+            // Fountain
+            mmCtx.fillStyle = '#5599dd';
+            mmCtx.beginPath();
+            mmCtx.arc(cx, cz, 3 * scale, 0, Math.PI * 2);
+            mmCtx.fill();
+
+            // NPCs (yellow dots)
+            mmCtx.fillStyle = '#ffff00';
+            npcs.forEach(npc => {
+                mmCtx.beginPath();
+                mmCtx.arc(cx + npc.group.position.x * scale, cz + npc.group.position.z * scale, 2, 0, Math.PI * 2);
+                mmCtx.fill();
+            });
+
+            // Player (white arrow)
+            mmCtx.fillStyle = '#ffffff';
+            mmCtx.beginPath();
+            mmCtx.arc(size / 2, size / 2, 3, 0, Math.PI * 2);
+            mmCtx.fill();
+            mmCtx.strokeStyle = '#000';
+            mmCtx.lineWidth = 1;
+            mmCtx.stroke();
+
+            // Circular mask
+            mmCtx.globalCompositeOperation = 'destination-in';
+            mmCtx.beginPath();
+            mmCtx.arc(size / 2, size / 2, size / 2 - 1, 0, Math.PI * 2);
+            mmCtx.fill();
+            mmCtx.globalCompositeOperation = 'source-over';
+        }
+
+        // ═══════ INTERACTION ═══════
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         let targetPosition = null;
 
-        // Label update function
-        function updateLabels() {
-            const allChars = [player, ...npcs];
-            allChars.forEach(char => {
-                const pos = char.group.position.clone();
-                pos.y += (char.isPlayer ? 4.0 : 3.2); // Player label higher
-                pos.project(camera);
-                
-                const x = (pos.x * .5 + .5) * window.innerWidth;
-                const y = (pos.y * -.5 + .5) * window.innerHeight;
-                
-                char.label.style.left = `${x}px`;
-                char.label.style.top = `${y}px`;
-                char.label.style.display = pos.z > 1 ? 'none' : 'block';
-            });
+        function addChatMessage(msg, color) {
+            const chat = document.getElementById('chat-messages');
+            const p = document.createElement('p');
+            p.innerHTML = `<span style="color:${color || '#fff'}">${msg}</span>`;
+            chat.appendChild(p);
+            chat.scrollTop = chat.scrollHeight;
+            // Trim old messages
+            while (chat.children.length > 50) chat.removeChild(chat.firstChild);
         }
 
+        // Left click: walk or talk
         window.addEventListener('click', (e) => {
+            if (e.button !== 0) return;
+            if (e.target.closest('#ui-container') || e.target.closest('#context-menu')) return;
+
+            // Hide context menu
+            document.getElementById('context-menu').style.display = 'none';
+
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+
+            // Check NPCs
+            const npcHits = raycaster.intersectObjects(npcs.map(n => n.hitMesh));
+            if (npcHits.length > 0) {
+                const npc = npcHits[0].object.userData;
+                addChatMessage(`<span class="npc-chat">[${npc.name}]:</span> ${npc.message}`, '#ffff00');
+                player.group.lookAt(npc.group.position.x, player.group.position.y, npc.group.position.z);
+                targetPosition = null;
+                return;
+            }
+
+            // Ground click
+            const groundHits = raycaster.intersectObjects([ground, square]);
+            if (groundHits.length > 0) {
+                targetPosition = groundHits[0].point.clone();
+                targetPosition.y = 0;
+
+                // Yellow X click marker (RS style)
+                const marker = new THREE.Group();
+                const arm1 = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.08, 0.08, 0.8),
+                    new THREE.MeshBasicMaterial({ color: 0xffff00 })
+                );
+                arm1.rotation.y = Math.PI / 4;
+                marker.add(arm1);
+                const arm2 = arm1.clone();
+                arm2.rotation.y = -Math.PI / 4;
+                marker.add(arm2);
+                marker.rotation.x = -Math.PI / 2;
+                marker.position.copy(targetPosition);
+                marker.position.y = 0.15;
+                scene.add(marker);
+                setTimeout(() => scene.remove(marker), 400);
+            }
+        });
+
+        // Right-click context menu
+        window.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
             if (e.target.closest('#ui-container')) return;
 
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
 
-            // Check for NPC clicks first
-            const npcHitboxes = npcs.map(n => n.hitMesh);
-            const npcIntersects = raycaster.intersectObjects(npcHitboxes);
-            if (npcIntersects.length > 0) {
-                const npcData = npcIntersects[0].object.userData;
-                addChatMessage(`[${npcData.name}]: ${npcData.message}`, '#ffff00');
-                player.group.lookAt(npcData.group.position.x, player.group.position.y, npcData.group.position.z);
-                targetPosition = null; // Stop moving
-                return;
+            const menu = document.getElementById('context-menu');
+            const items = document.getElementById('context-menu-items');
+            items.innerHTML = '';
+
+            // Check NPCs
+            const npcHits = raycaster.intersectObjects(npcs.map(n => n.hitMesh));
+            if (npcHits.length > 0) {
+                const npc = npcHits[0].object.userData;
+                menu.querySelector('.menu-title').textContent = npc.name;
+
+                const actions = ['Talk-to', 'Examine', 'Attack'];
+                actions.forEach(action => {
+                    const item = document.createElement('div');
+                    item.className = 'menu-item';
+                    item.innerHTML = `<span class="action">${action}</span> <span class="target">${npc.name}</span>`;
+                    item.addEventListener('click', () => {
+                        menu.style.display = 'none';
+                        if (action === 'Talk-to') {
+                            addChatMessage(`<span class="npc-chat">[${npc.name}]:</span> ${npc.message}`, '#ffff00');
+                        } else if (action === 'Examine') {
+                            addChatMessage(`It's ${npc.name}.`, '#0000ff');
+                        } else {
+                            addChatMessage(`You can't attack ${npc.name} here.`, '#ff0000');
+                        }
+                    });
+                    items.appendChild(item);
+                });
+            } else {
+                menu.querySelector('.menu-title').textContent = 'Choose Option';
+                const walkItem = document.createElement('div');
+                walkItem.className = 'menu-item';
+                walkItem.innerHTML = '<span class="action">Walk here</span>';
+                walkItem.addEventListener('click', () => {
+                    menu.style.display = 'none';
+                    const groundHits = raycaster.intersectObjects([ground, square]);
+                    if (groundHits.length > 0) {
+                        targetPosition = groundHits[0].point.clone();
+                        targetPosition.y = 0;
+                    }
+                });
+                items.appendChild(walkItem);
             }
 
-            // If no NPC, check ground
-            const intersects = raycaster.intersectObjects([ground, square]);
-            if (intersects.length > 0) {
-                targetPosition = intersects[0].point.clone();
-                targetPosition.y = player.group.position.y; // Keep player on their current Y plane
+            // Cancel
+            const cancel = document.createElement('div');
+            cancel.className = 'menu-item';
+            cancel.innerHTML = '<span class="action">Cancel</span>';
+            cancel.addEventListener('click', () => { menu.style.display = 'none'; });
+            items.appendChild(cancel);
 
-                // Add yellow click marker
-                const clickGeo = new THREE.RingGeometry(0.2, 0.4, 16);
-                const clickMat = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide });
-                const clickMesh = new THREE.Mesh(clickGeo, clickMat);
-                clickMesh.rotation.x = -Math.PI / 2;
-                clickMesh.position.copy(targetPosition);
-                clickMesh.position.y += 0.1;
-                scene.add(clickMesh);
-                setTimeout(() => scene.remove(clickMesh), 300);
-            }
+            menu.style.left = e.clientX + 'px';
+            menu.style.top = e.clientY + 'px';
+            menu.style.display = 'block';
         });
 
-        const clock = new THREE.Clock();
+        // Hide context menu on click elsewhere
+        window.addEventListener('click', () => {
+            document.getElementById('context-menu').style.display = 'none';
+        }, true);
 
-        // Game Loop
+        // ═══════ LABEL UPDATES ═══════
+        function updateLabels() {
+            allCharacters.forEach(char => {
+                const pos = char.group.position.clone();
+                pos.y += 3.0;
+                pos.project(camera);
+                const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
+                const y = (pos.y * -0.5 + 0.5) * window.innerHeight;
+                char.label.style.left = x + 'px';
+                char.label.style.top = y + 'px';
+                char.label.style.display = pos.z > 1 ? 'none' : 'block';
+            });
+        }
+
+        // ═══════ PANEL TABS ═══════
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+            });
+        });
+        document.querySelectorAll('.chat-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.chat-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+            });
+        });
+
+        // ═══════ PARTICLES (fire, water) ═══════
+        const particleSystems = [];
+
+        // Fire particles for forge
+        function createFireParticles(x, y, z) {
+            const count = 30;
+            const geo = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+            const velocities = [];
+            for (let i = 0; i < count; i++) {
+                positions[i * 3] = x + (Math.random() - 0.5) * 1.5;
+                positions[i * 3 + 1] = y + Math.random() * 0.5;
+                positions[i * 3 + 2] = z + (Math.random() - 0.5) * 1.5;
+                velocities.push({ vy: 0.5 + Math.random() * 1.5, life: Math.random() });
+            }
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const mat = new THREE.PointsMaterial({ color: 0xff6600, size: 0.15, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending });
+            const points = new THREE.Points(geo, mat);
+            scene.add(points);
+            particleSystems.push({ points, velocities, origin: { x, y, z }, count });
+        }
+        createFireParticles(22, 2.2, 12);
+
+        // Fountain splash particles
+        function createWaterParticles(x, y, z) {
+            const count = 20;
+            const geo = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+            const velocities = [];
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                positions[i * 3] = x + Math.cos(angle) * 0.3;
+                positions[i * 3 + 1] = y + Math.random() * 2;
+                positions[i * 3 + 2] = z + Math.sin(angle) * 0.3;
+                velocities.push({ vx: Math.cos(angle) * 0.3, vy: 1 + Math.random(), vz: Math.sin(angle) * 0.3, life: Math.random() });
+            }
+            geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const mat = new THREE.PointsMaterial({ color: 0x88bbff, size: 0.1, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending });
+            const points = new THREE.Points(geo, mat);
+            scene.add(points);
+            particleSystems.push({ points, velocities, origin: { x, y, z }, count, isWater: true });
+        }
+        createWaterParticles(0, 4.2, 0);
+
+        function updateParticles(delta) {
+            particleSystems.forEach(sys => {
+                const pos = sys.points.geometry.attributes.position.array;
+                for (let i = 0; i < sys.count; i++) {
+                    const v = sys.velocities[i];
+                    v.life -= delta * (sys.isWater ? 0.8 : 1.2);
+                    pos[i * 3 + 1] += v.vy * delta;
+                    if (sys.isWater) {
+                        pos[i * 3] += (v.vx || 0) * delta;
+                        pos[i * 3 + 2] += (v.vz || 0) * delta;
+                        v.vy -= 2 * delta; // gravity
+                    }
+                    if (v.life <= 0) {
+                        // Reset particle
+                        if (sys.isWater) {
+                            const angle = Math.random() * Math.PI * 2;
+                            pos[i * 3] = sys.origin.x + Math.cos(angle) * 0.2;
+                            pos[i * 3 + 1] = sys.origin.y;
+                            pos[i * 3 + 2] = sys.origin.z + Math.sin(angle) * 0.2;
+                            v.vx = Math.cos(angle) * 0.3;
+                            v.vy = 1 + Math.random() * 1.5;
+                            v.vz = Math.sin(angle) * 0.3;
+                        } else {
+                            pos[i * 3] = sys.origin.x + (Math.random() - 0.5) * 1.5;
+                            pos[i * 3 + 1] = sys.origin.y;
+                            pos[i * 3 + 2] = sys.origin.z + (Math.random() - 0.5) * 1.5;
+                            v.vy = 0.5 + Math.random() * 1.5;
+                        }
+                        v.life = 0.5 + Math.random() * 0.5;
+                    }
+                }
+                sys.points.geometry.attributes.position.needsUpdate = true;
+            });
+        }
+
+        // ═══════ GAME LOOP ═══════
+        setLoad(100);
+        setTimeout(() => loadOverlay.classList.add('hidden'), 400);
+
+        const clock = new THREE.Clock();
+        let time = 0;
+
         function animate() {
             requestAnimationFrame(animate);
-            const delta = clock.getDelta();
+            const delta = Math.min(clock.getDelta(), 0.05);
+            time += delta;
 
             // Move player
             if (targetPosition) {
-                const speed = 15; // units per second
-                const distanceToTarget = player.position.distanceTo(targetPosition);
-                
-                if (distanceToTarget > 0.1) {
-                    const direction = targetPosition.clone().sub(player.position).normalize();
-                    player.position.add(direction.multiplyScalar(speed * delta));
+                const speed = 8;
+                const dir = targetPosition.clone().sub(player.group.position);
+                dir.y = 0;
+                if (dir.length() > 0.2) {
+                    player.group.lookAt(targetPosition.x, player.group.position.y, targetPosition.z);
+                    dir.normalize().multiplyScalar(speed * delta);
+                    player.group.position.add(dir);
                 } else {
                     targetPosition = null;
                 }
             }
-            
-            // Smooth camera follow
-            const cameraOffset = new THREE.Vector3(30, 30, 30);
-            const targetCameraPosition = player.position.clone().add(cameraOffset);
-            camera.position.lerp(targetCameraPosition, 0.05);
-            camera.lookAt(player.position);
 
+            // NPCs patrol
+            updateNPCs(delta);
+
+            // Camera follow (smooth)
+            const camOffset = new THREE.Vector3(30, 30, 30);
+            const targetCam = player.group.position.clone().add(camOffset);
+            camera.position.lerp(targetCam, 0.06);
+            camera.lookAt(player.group.position);
+
+            // Torch flicker
+            torchLights.forEach(t => {
+                const flicker = t.baseIntensity + Math.sin(time * 10 + Math.random() * 0.5) * 0.3;
+                t.light.intensity = flicker;
+                if (t.flame) {
+                    t.flame.scale.setScalar(0.9 + Math.sin(time * 12) * 0.15);
+                }
+            });
+
+            // Water shimmer
+            waterSurface.material.opacity = 0.8 + Math.sin(time * 2) * 0.05;
+
+            // Particles
+            updateParticles(delta);
+
+            // Labels
             updateLabels();
+
+            // Minimap
+            renderMinimap();
+
             composer.render(delta);
         }
         animate();
 
+        // ═══════ RESIZE ═══════
         window.addEventListener('resize', () => {
             const aspect = window.innerWidth / window.innerHeight;
             camera.left = -d * aspect;

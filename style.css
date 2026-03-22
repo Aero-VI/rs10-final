@@ -1,75 +1,367 @@
-/* Basic resets */
-body, html { margin: 0; overflow: hidden; background-color: #000; font-family: 'Times New Roman', Times, serif; }
-#game-canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+/* ===================== RS10 – RuneScape-Style UI ===================== */
+@import url('https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap');
 
-/* UI Container overlay */
-#ui-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
+:root {
+    --rs-stone-dark: #3b3024;
+    --rs-stone-mid: #4a3a2a;
+    --rs-stone-light: #5c4a38;
+    --rs-gold: #c8aa6e;
+    --rs-gold-bright: #e6d09e;
+    --rs-border: #6b5a42;
+    --rs-bg: rgba(30, 25, 18, 0.92);
+    --rs-text: #ffff00;
+    --rs-chat-bg: rgba(0, 0, 0, 0.75);
+}
+
+body, html {
+    margin: 0; padding: 0; overflow: hidden;
+    background: #000;
+    font-family: 'MedievalSharp', 'Times New Roman', serif;
+    user-select: none;
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><polygon points="2,2 2,16 7,12 12,18 14,16 9,10 14,8" fill="%23ff0" stroke="%23000" stroke-width="1"/></svg>') 2 2, default;
+}
+
+#game-canvas {
+    display: block; width: 100vw; height: 100vh;
+    position: absolute; top: 0; left: 0; z-index: 1;
+    image-rendering: auto;
+}
+
+/* ─── UI Container ─── */
+#ui-container {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 10; pointer-events: none;
+}
 #ui-container > * { pointer-events: auto; }
 
-/* Top Bar (Orbs) */
-#top-bar { position: absolute; top: 10px; left: 10px; display: flex; gap: 10px; }
-.orb {
-    width: 30px; height: 30px; border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, #555, #111);
-    border: 2px solid #3a2a1a;
-    color: white; font-weight: bold; font-size: 10px;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 0 5px rgba(0,0,0,0.8);
+/* ─── Labels Container ─── */
+#labels-container {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 5; pointer-events: none;
 }
-.hp-orb { border-color: #522; color: #f44; }
-.prayer-orb { border-color: #244; color: #4af; }
-.run-orb { border-color: #442; color: #fd4; }
 
-/* Chat Box */
+/* NPC / Player Labels */
+.npc-label {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    font-family: 'MedievalSharp', serif;
+    font-size: 13px;
+    font-weight: bold;
+    text-shadow:
+        -1px -1px 0 #000, 1px -1px 0 #000,
+        -1px 1px 0 #000, 1px 1px 0 #000,
+        0 0 4px #000;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 50;
+}
+
+/* ─── Top-Left Orbs ─── */
+#top-bar {
+    position: absolute; top: 6px; left: 6px;
+    display: flex; flex-direction: column; gap: 4px;
+    z-index: 20;
+}
+
+.orb-wrapper { display: flex; align-items: center; gap: 4px; }
+
+.orb {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: bold;
+    color: #fff;
+    box-shadow: 0 0 6px rgba(0,0,0,0.9), inset 0 0 8px rgba(0,0,0,0.5);
+    position: relative;
+    cursor: pointer;
+}
+.orb::before {
+    content: ''; position: absolute; inset: 0; border-radius: 50%;
+    border: 2px solid var(--rs-border);
+}
+.orb-fill {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    border-radius: 0 0 50% 50%;
+    transition: height 0.3s;
+}
+
+.hp-orb { background: radial-gradient(circle at 35% 35%, #4a1515, #1a0808); }
+.hp-orb .orb-fill { background: #aa2222; height: 100%; border-radius: 50%; opacity: 0.5; }
+.hp-orb .orb-icon { color: #ff4444; text-shadow: 0 0 6px #ff0000; }
+
+.prayer-orb { background: radial-gradient(circle at 35% 35%, #15354a, #081018); }
+.prayer-orb .orb-fill { background: #2244aa; height: 100%; border-radius: 50%; opacity: 0.5; }
+.prayer-orb .orb-icon { color: #44aaff; text-shadow: 0 0 6px #4488ff; }
+
+.run-orb { background: radial-gradient(circle at 35% 35%, #4a4515, #181808); }
+.run-orb .orb-fill { background: #aa8822; height: 100%; border-radius: 50%; opacity: 0.5; }
+.run-orb .orb-icon { color: #ffdd44; text-shadow: 0 0 6px #ffaa00; }
+
+.orb-icon { font-size: 14px; z-index: 2; position: relative; }
+.orb-text { color: var(--rs-gold); font-size: 12px; font-weight: bold; text-shadow: 1px 1px 2px #000; }
+
+/* ─── Chat Box ─── */
 #chat-box {
     position: absolute; bottom: 0; left: 0;
-    width: 500px; height: 150px;
-    background: rgba(30, 25, 20, 0.8);
-    border-top: 3px solid #4a3a2a; border-right: 3px solid #4a3a2a;
+    width: 520px; height: 152px;
+    background: var(--rs-chat-bg);
+    border: 2px solid var(--rs-stone-mid);
+    border-bottom: none; border-left: none;
     display: flex; flex-direction: column;
-    color: white; font-size: 14px;
+    font-size: 13px;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
 }
-.chat-messages { flex: 1; padding: 8px; overflow-y: auto; display: flex; flex-direction: column-reverse; }
-.chat-messages p { margin: 2px 0; }
+
+.chat-tabs {
+    display: flex; height: 24px;
+    background: var(--rs-stone-dark);
+    border-bottom: 1px solid var(--rs-stone-mid);
+}
+.chat-tab {
+    padding: 2px 12px; font-size: 11px;
+    background: var(--rs-stone-dark);
+    color: var(--rs-gold);
+    border: none; border-right: 1px solid var(--rs-stone-mid);
+    cursor: pointer;
+    font-family: inherit;
+}
+.chat-tab:hover { background: var(--rs-stone-mid); }
+.chat-tab.active {
+    background: var(--rs-stone-light);
+    color: var(--rs-gold-bright);
+    box-shadow: inset 0 -2px 0 var(--rs-gold);
+}
+
+.chat-messages {
+    flex: 1; padding: 6px 10px;
+    overflow-y: auto;
+    display: flex; flex-direction: column;
+    color: #fff;
+    scrollbar-width: thin;
+    scrollbar-color: var(--rs-stone-mid) transparent;
+}
+.chat-messages p { margin: 1px 0; line-height: 1.4; }
+.chat-messages::-webkit-scrollbar { width: 6px; }
+.chat-messages::-webkit-scrollbar-thumb { background: var(--rs-stone-mid); border-radius: 3px; }
+
 .sys { color: #00ffff; }
-.chat-input { padding: 4px 8px; border-top: 1px solid #4a3a2a; background: rgba(0,0,0,0.5); color: #aaa; }
+.npc-chat { color: #ffff00; }
+.player-chat { color: #0000ff; }
 
-/* Right Panel (Minimap + Tabs) */
-#right-panel-container { position: absolute; right: 0; top: 0; height: 100%; width: 250px; display: flex; flex-direction: column; }
+.chat-input {
+    padding: 4px 10px;
+    border-top: 1px solid var(--rs-stone-mid);
+    background: rgba(0,0,0,0.6);
+    color: #888; font-size: 12px;
+    font-family: inherit;
+}
 
-/* Minimap */
+/* ─── Right Panel Container ─── */
+#right-panel-container {
+    position: absolute; right: 0; top: 0;
+    height: 100%; width: 242px;
+    display: flex; flex-direction: column;
+    align-items: center;
+}
+
+/* ─── Minimap ─── */
+#minimap-wrapper {
+    position: relative;
+    width: 210px; height: 210px;
+    margin-top: 4px;
+}
+
 #minimap-border {
-    width: 200px; height: 200px; border-radius: 50%;
-    background: #3a2a1a; margin: 10px auto;
-    border: 4px solid #5a4a3a;
-    box-shadow: inset 0 0 10px #000, 0 0 15px rgba(0,0,0,0.8);
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    margin: 5px auto 0;
+    border: 4px solid var(--rs-border);
+    box-shadow:
+        inset 0 0 15px rgba(0,0,0,0.8),
+        0 0 10px rgba(0,0,0,0.6),
+        0 2px 0 var(--rs-gold);
+    overflow: hidden;
+    background: var(--rs-stone-dark);
     display: flex; align-items: center; justify-content: center;
 }
-#minimap-inner { width: 190px; height: 190px; border-radius: 50%; background: #223322; }
 
-/* Side Panel */
+#minimap-inner {
+    width: 192px; height: 192px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+#minimap-canvas {
+    width: 100%; height: 100%;
+    border-radius: 50%;
+}
+
+/* Compass */
+#compass {
+    position: absolute; top: 0; right: 0;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--rs-stone-light), var(--rs-stone-dark));
+    border: 2px solid var(--rs-gold);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: bold;
+    color: var(--rs-gold-bright);
+    text-shadow: 0 0 4px #000;
+    cursor: pointer;
+    z-index: 5;
+    box-shadow: 0 0 8px rgba(0,0,0,0.8);
+}
+
+/* World map button */
+#world-map-btn {
+    position: absolute; bottom: 0; left: 0;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--rs-stone-dark);
+    border: 2px solid var(--rs-border);
+    color: var(--rs-gold); font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(0,0,0,0.8);
+}
+
+/* ─── Side Panel (Inventory / Stats / etc.) ─── */
 #side-panel {
-    flex: 1; margin-top: 10px;
-    background: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="%232c241b"/><path d="M0,0 L100,100 M100,0 L0,100" stroke="%233a3024" stroke-width="2" opacity="0.2"/></svg>');
-    border-top: 3px solid #4a3a2a; border-left: 3px solid #4a3a2a;
+    flex: 1; width: 100%;
+    margin-top: 4px;
+    background:
+        linear-gradient(135deg, rgba(60,48,36,0.95), rgba(40,32,24,0.95));
+    border: 2px solid var(--rs-stone-mid);
+    border-right: none;
+    box-shadow:
+        inset 0 0 20px rgba(0,0,0,0.5),
+        -2px 0 8px rgba(0,0,0,0.3);
     display: flex; flex-direction: column;
 }
-.panel-tabs { display: flex; height: 35px; border-bottom: 2px solid #4a3a2a; }
-.tab {
-    flex: 1; background: #3a2a1a; border: none; border-right: 1px solid #2a1a0a;
-    color: #fff; cursor: pointer; font-size: 16px;
+
+/* Panel Tabs */
+.panel-tabs {
+    display: flex; height: 32px;
+    background: var(--rs-stone-dark);
+    border-bottom: 2px solid var(--rs-gold);
+    gap: 1px;
 }
-.tab:hover { background: #4a3a2a; }
-.tab.active { background: #5a4a3a; box-shadow: inset 0 3px 5px rgba(0,0,0,0.5); }
+.tab {
+    flex: 1;
+    background: linear-gradient(180deg, var(--rs-stone-mid), var(--rs-stone-dark));
+    border: none;
+    color: #fff; cursor: pointer;
+    font-size: 15px;
+    transition: background 0.1s;
+    display: flex; align-items: center; justify-content: center;
+    border-top: 2px solid transparent;
+    font-family: inherit;
+}
+.tab:hover {
+    background: linear-gradient(180deg, var(--rs-stone-light), var(--rs-stone-mid));
+}
+.tab.active {
+    background: linear-gradient(180deg, #5c4a38, #4a3a2a);
+    border-top: 2px solid var(--rs-gold);
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
+}
 
 /* Inventory Grid */
-.panel-content { flex: 1; padding: 15px; }
+.panel-content {
+    flex: 1; padding: 8px;
+    overflow-y: auto;
+}
 .inventory-grid {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;
-    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 3px;
 }
 .inv-slot {
-    background: rgba(0,0,0,0.3); border: 1px solid #4a3a2a;
-    border-radius: 2px; aspect-ratio: 1;
-    box-shadow: inset 1px 1px 3px rgba(0,0,0,0.8);
+    aspect-ratio: 1;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid var(--rs-stone-mid);
+    border-radius: 2px;
+    box-shadow:
+        inset 1px 1px 3px rgba(0,0,0,0.7),
+        inset -1px -1px 2px rgba(80,65,45,0.3);
+    cursor: pointer;
+    transition: background 0.1s;
+}
+.inv-slot:hover {
+    background: rgba(80,65,45,0.4);
+    border-color: var(--rs-gold);
+}
+
+/* ─── Right-Click Context Menu ─── */
+#context-menu {
+    display: none;
+    position: absolute;
+    z-index: 100;
+    min-width: 160px;
+    background: linear-gradient(180deg, var(--rs-stone-mid), var(--rs-stone-dark));
+    border: 2px solid var(--rs-gold);
+    box-shadow: 2px 4px 12px rgba(0,0,0,0.8);
+    font-size: 13px;
+    padding: 2px 0;
+}
+#context-menu .menu-title {
+    padding: 4px 8px;
+    color: var(--rs-gold-bright);
+    font-weight: bold;
+    border-bottom: 1px solid var(--rs-stone-mid);
+    background: rgba(0,0,0,0.3);
+}
+#context-menu .menu-item {
+    padding: 3px 10px;
+    color: #fff;
+    cursor: pointer;
+}
+#context-menu .menu-item:hover {
+    background: rgba(200,170,110,0.2);
+    color: var(--rs-gold-bright);
+}
+#context-menu .menu-item .action { color: #ffff00; }
+#context-menu .menu-item .target { color: #00ffff; }
+
+/* ─── Tooltip ─── */
+.rs-tooltip {
+    position: absolute;
+    background: var(--rs-stone-dark);
+    border: 1px solid var(--rs-gold);
+    color: var(--rs-gold-bright);
+    padding: 2px 6px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 200;
+    white-space: nowrap;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.8);
+}
+
+/* ─── Loading Overlay ─── */
+#loading-overlay {
+    position: fixed; inset: 0;
+    background: #000;
+    z-index: 1000;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: var(--rs-gold);
+    font-family: 'MedievalSharp', serif;
+    transition: opacity 0.5s;
+}
+#loading-overlay.hidden { opacity: 0; pointer-events: none; }
+#loading-overlay h1 { font-size: 48px; margin-bottom: 10px; text-shadow: 0 0 20px rgba(200,170,110,0.5); }
+#loading-overlay .subtitle { color: #888; font-size: 14px; }
+.loading-bar-outer {
+    width: 300px; height: 24px;
+    background: var(--rs-stone-dark);
+    border: 2px solid var(--rs-gold);
+    border-radius: 4px; margin-top: 20px;
+    overflow: hidden;
+}
+.loading-bar-inner {
+    height: 100%;
+    background: linear-gradient(90deg, #aa6622, var(--rs-gold), #aa6622);
+    width: 0%; transition: width 0.3s;
+    box-shadow: 0 0 10px rgba(200,170,110,0.5);
 }
